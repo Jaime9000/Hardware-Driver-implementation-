@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <stdbool.h>
 #include "commands.h"
+#include "error_codes.h"
 
 #define SLOW_BAUD_RATE 115200
 #define FAST_BAUD_RATE 230400

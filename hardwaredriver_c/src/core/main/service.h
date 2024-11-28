@@ -5,6 +5,7 @@
 #include <http.h>
 #include "config.h"
 #include "serial_interface.h"
+#include "error_codes.h"
 
 #define DEFAULT_PORT 8000
 #define MAX_COMMAND_LENGTH 256

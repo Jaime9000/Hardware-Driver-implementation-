@@ -2,6 +2,7 @@
 #define MYOTRONICS_COMMANDS_H
 
 #include <stdbool.h>
+#include "error_codes.h"
 
 // Main IO Commands
 typedef enum {
@@ -86,19 +87,6 @@ bool is_valid_command(const char* command);
 #define DEFAULT_BUFFER_SIZE 1600
 #define MAX_BUFFER_SIZE 32000
 
-// Error codes
-typedef enum {
-    ERROR_NONE = 0,
-    ERROR_INVALID_COMMAND = -1,
-    ERROR_HANDSHAKE_FAILED = -2,
-    ERROR_DEVICE_DISCONNECTED = -3,
-    ERROR_TIMEOUT = -4,
-    ERROR_WRITE_FAILED = -5,
-    ERROR_READ_FAILED = -6,
-    ERROR_BUFFER_OVERFLOW = -7,
-    ERROR_INVALID_MODE = -8,
-} ErrorCode;
-
 // Mode status flags
 typedef enum {
     MODE_STATUS_IDLE = 0,
@@ -121,10 +109,6 @@ bool validate_mode_command(const char* command);
 bool validate_control_command(const char* command);
 ErrorCode parse_command(const char* command, IOCommand* io_cmd, ModeConfig* mode_cfg);
 
-// Error handling
-const char* get_error_string(ErrorCode code);
-void set_last_error(ErrorCode code);
-ErrorCode get_last_error(void);
 
 #ifdef __cplusplus
 }

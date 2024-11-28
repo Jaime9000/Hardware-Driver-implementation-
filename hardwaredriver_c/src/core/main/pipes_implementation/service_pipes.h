@@ -6,6 +6,7 @@
 #include "config.h"
 #include "serial_interface.h"
 #include "commands.h"
+#include "error_codes.h"
 
 #define PIPE_NAME "\\\\.\\pipe\\MyotronicsDriver"
 #define PIPE_BUFFER_SIZE 4096

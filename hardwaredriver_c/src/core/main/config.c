@@ -2,49 +2,50 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
-#include <time.h>
-#include <direct.h>  // For _mkdir
+#include <direct.h>
 #include <setupapi.h>
 #include <initguid.h>
 #include <devguid.h>
+#include <jansson.h>
+#include "logger.h"
 
 // Static helper function declarations
-static void get_timestamp(char* buffer, size_t size);
-static ConfigError rotate_log_if_needed(Config* config);
-static ConfigError ensure_directory_exists(const char* path);
 static bool is_target_usb_device(const char* hardware_id);
+static ConfigError create_directory_if_not_exists(const char* path);
 
-// Constructor
 Config* config_create(void) {
     Config* config = (Config*)malloc(sizeof(Config));
     if (config == NULL) {
+        log_error("Failed to allocate memory for config");
         return NULL;
     }
 
     memset(config, 0, sizeof(Config));
+    
+    // Set default paths
+    strncpy(config->config_path, DEFAULT_CONFIG_PATH, MAX_PATH_LENGTH - 1);
+    strncpy(config->log_dir, DEFAULT_LOG_DIR, MAX_PATH_LENGTH - 1);
+    strncpy(config->freq_config_path, DEFAULT_FREQ_CONFIG_PATH, MAX_PATH_LENGTH - 1);
+    
     config_load_defaults(config);
+    log_debug("Config created successfully");
     return config;
 }
 
-// Destructor
 void config_destroy(Config* config) {
     if (config) {
+        log_debug("Destroying config");
         free(config);
     }
 }
 
-// Initialize with defaults
 ConfigError config_load_defaults(Config* config) {
     if (!config) {
+        log_error("Cannot load defaults: NULL config");
         return CONFIG_ERROR_MEMORY;
     }
 
-    // Set default values
     config->port_auto_detect = true;
-    config->log_level = LOG_LEVEL_INFO;
-    config->rotating_log = true;
-    config->max_log_size = 10 * 1024 * 1024;  // 10MB
     config->is_service = false;
     config->debug_enabled = false;
     config->info_enabled = true;
@@ -52,244 +53,236 @@ ConfigError config_load_defaults(Config* config) {
     config->sample_count = 1600;
     config->is_initialized = false;
 
-    // Set default paths
-    strncpy(config->log_file_path, DEFAULT_LOG_PATH, MAX_LOG_PATH_LENGTH - 1);
-    config->log_file_path[MAX_LOG_PATH_LENGTH - 1] = '\0';
-
+    log_debug("Default configuration loaded");
     return CONFIG_SUCCESS;
 }
 
-// Port detection implementation
-ConfigError config_sense_ports(Config* config) {
+ConfigError config_load_from_file(Config* config, const char* config_path) {
     if (!config) {
+        log_error("Cannot load config: NULL config");
+        return CONFIG_ERROR_MEMORY;
+    }
+    
+    json_error_t error;
+    json_t* root = json_load_file(config_path, 0, &error);
+    if (!root) {
+        log_error("Failed to load config file: %s", error.text);
+        return CONFIG_ERROR_JSON_PARSE;
+    }
+    
+    // Load all configuration values
+    json_t* value;
+    
+    // Port configuration
+    value = json_object_get(root, "port_name");
+    if (json_is_string(value)) {
+        strncpy(config->port_name, json_string_value(value), MAX_PORT_NAME_LENGTH - 1);
+        log_debug("Loaded port name: %s", config->port_name);
+    }
+    
+    value = json_object_get(root, "port_auto_detect");
+    if (json_is_boolean(value)) {
+        config->port_auto_detect = json_boolean_value(value);
+        log_debug("Port auto-detect: %s", config->port_auto_detect ? "enabled" : "disabled");
+    }
+    
+    // Operation mode
+    value = json_object_get(root, "is_service");
+    if (json_is_boolean(value)) {
+        config->is_service = json_boolean_value(value);
+        log_debug("Service mode: %s", config->is_service ? "enabled" : "disabled");
+    }
+    
+    value = json_object_get(root, "debug_enabled");
+    if (json_is_boolean(value)) {
+        config->debug_enabled = json_boolean_value(value);
+        log_debug("Debug mode: %s", config->debug_enabled ? "enabled" : "disabled");
+    }
+    
+    value = json_object_get(root, "info_enabled");
+    if (json_is_boolean(value)) {
+        config->info_enabled = json_boolean_value(value);
+        log_debug("Info logging: %s", config->info_enabled ? "enabled" : "disabled");
+    }
+    
+    value = json_object_get(root, "debug_events");
+    if (json_is_boolean(value)) {
+        config->debug_events = json_boolean_value(value);
+        log_debug("Debug events: %s", config->debug_events ? "enabled" : "disabled");
+    }
+    
+    // Sample configuration
+    value = json_object_get(root, "sample_count");
+    if (json_is_integer(value)) {
+        config->sample_count = (int)json_integer_value(value);
+        log_debug("Sample count: %d", config->sample_count);
+    }
+    
+    json_decref(root);
+    
+    // Validate loaded configuration
+    return config_validate(config);
+}
+
+ConfigError config_save_to_file(Config* config, const char* config_path) {
+    if (!config) {
+        log_error("Cannot save config: NULL config");
+        return CONFIG_ERROR_MEMORY;
+    }
+    
+    json_t* root = json_object();
+    
+    // Save all configuration values
+    json_object_set_new(root, "port_name", json_string(config->port_name));
+    json_object_set_new(root, "port_auto_detect", json_boolean(config->port_auto_detect));
+    json_object_set_new(root, "is_service", json_boolean(config->is_service));
+    json_object_set_new(root, "debug_enabled", json_boolean(config->debug_enabled));
+    json_object_set_new(root, "info_enabled", json_boolean(config->info_enabled));
+    json_object_set_new(root, "debug_events", json_boolean(config->debug_events));
+    json_object_set_new(root, "sample_count", json_integer(config->sample_count));
+    
+    if (json_dump_file(root, config_path, JSON_INDENT(2)) != 0) {
+        log_error("Failed to save config file: %s", config_path);
+        json_decref(root);
+        return CONFIG_ERROR_FILE_ACCESS;
+    }
+    
+    log_debug("Configuration saved successfully to: %s", config_path);
+    json_decref(root);
+    return CONFIG_SUCCESS;
+}
+
+ConfigError config_validate(Config* config) {
+    if (!config) {
+        log_error("Cannot validate config: NULL config");
+        return CONFIG_ERROR_MEMORY;
+    }
+    
+    // Validate paths
+    if (strlen(config->log_dir) == 0) {
+        log_error("Log directory path is empty");
+        return CONFIG_ERROR_INVALID_CONFIG;
+    }
+    
+    // Validate port settings
+    if (!config->port_auto_detect && strlen(config->port_name) == 0) {
+        log_error("Port name is required when auto-detect is disabled");
+        return CONFIG_ERROR_INVALID_CONFIG;
+    }
+    
+    // Validate sample count
+    if (config->sample_count <= 0 || config->sample_count > MAX_BUFFER_SIZE) {
+        log_error("Invalid sample count: %d", config->sample_count);
+        return CONFIG_ERROR_INVALID_CONFIG;
+    }
+    
+    log_debug("Configuration validated successfully");
+    return CONFIG_SUCCESS;
+}
+
+ConfigError config_ensure_directories(Config* config) {
+    if (!config) {
+        log_error("Cannot ensure directories: NULL config");
+        return CONFIG_ERROR_MEMORY;
+    }
+    
+    // Create log directory
+    ConfigError result = create_directory_if_not_exists(config->log_dir);
+    if (result != CONFIG_SUCCESS) {
+        return result;
+    }
+    
+    // Create frequency config directory
+    char freq_dir[MAX_PATH_LENGTH];
+    strncpy(freq_dir, config->freq_config_path, MAX_PATH_LENGTH - 1);
+    char* last_sep = strrchr(freq_dir, '\\');
+    if (last_sep) {
+        *last_sep = '\0';
+        result = create_directory_if_not_exists(freq_dir);
+        if (result != CONFIG_SUCCESS) {
+            return result;
+        }
+    }
+    
+    log_debug("All required directories created/verified");
+    return CONFIG_SUCCESS;
+}
+
+ConfigError config_detect_port(Config* config) {
+    if (!config) {
+        log_error("Cannot detect port: NULL config");
         return CONFIG_ERROR_MEMORY;
     }
 
-    HDEVINFO device_info_set = SetupDiGetClassDevs(
-        &GUID_DEVCLASS_PORTS, NULL, NULL, 
-        DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
-
+    HDEVINFO device_info_set = SetupDiGetClassDevs(&GUID_DEVCLASS_PORTS, NULL, NULL, DIGCF_PRESENT);
     if (device_info_set == INVALID_HANDLE_VALUE) {
+        log_error("Failed to get device information set");
         return CONFIG_ERROR_PORT_ACCESS;
     }
 
     SP_DEVINFO_DATA device_info_data;
     device_info_data.cbSize = sizeof(SP_DEVINFO_DATA);
-    
-    DWORD device_index = 0;
-    bool found_port = false;
 
-    while (SetupDiEnumDeviceInfo(device_info_set, device_index, &device_info_data)) {
-        char hardware_id[256];
-        if (SetupDiGetDeviceRegistryProperty(
-                device_info_set, &device_info_data,
-                SPDRP_HARDWAREID, NULL,
-                (PBYTE)hardware_id, sizeof(hardware_id), NULL)) {
+    bool found_port = false;
+    for (DWORD i = 0; SetupDiEnumDeviceInfo(device_info_set, i, &device_info_data); i++) {
+        char hardware_id[256] = {0};
+        if (SetupDiGetDeviceRegistryProperty(device_info_set, &device_info_data, SPDRP_HARDWAREID,
+            NULL, (PBYTE)hardware_id, sizeof(hardware_id), NULL)) {
             
             if (is_target_usb_device(hardware_id)) {
-                char port_name[MAX_PORT_NAME_LENGTH];
-                HKEY key = SetupDiOpenDevRegKey(
-                    device_info_set, &device_info_data,
+                char port_name[MAX_PORT_NAME_LENGTH] = {0};
+                HKEY key = SetupDiOpenDevRegKey(device_info_set, &device_info_data,
                     DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_READ);
-                
+                    
                 if (key != INVALID_HANDLE_VALUE) {
-                    DWORD type;
+                    DWORD type = 0;
                     DWORD size = sizeof(port_name);
-                    if (RegQueryValueEx(key, "PortName", NULL, &type, 
-                                      (LPBYTE)port_name, &size) == ERROR_SUCCESS) {
+                    if (RegQueryValueEx(key, "PortName", NULL, &type, (LPBYTE)port_name, &size) == ERROR_SUCCESS) {
                         strncpy(config->port_name, port_name, MAX_PORT_NAME_LENGTH - 1);
                         found_port = true;
-                        RegCloseKey(key);
-                        break;
+                        log_debug("Found compatible port: %s", port_name);
                     }
                     RegCloseKey(key);
                 }
+                break;
             }
         }
-        device_index++;
     }
 
     SetupDiDestroyDeviceInfoList(device_info_set);
-    return found_port ? CONFIG_SUCCESS : CONFIG_ERROR_NO_PORTS;
-}
 
-// Logging implementation
-ConfigError config_init_logging(Config* config) {
-    if (!config) {
-        return CONFIG_ERROR_MEMORY;
-    }
-
-    // Ensure the log directory exists
-    ConfigError err = ensure_directory_exists(config->log_file_path);
-    if (err != CONFIG_SUCCESS) {
-        return err;
-    }
-
-    // Test if we can write to the log file
-    FILE* test_file = fopen(config->log_file_path, "a");
-    if (!test_file) {
-        return CONFIG_ERROR_LOG_ACCESS;
-    }
-    fclose(test_file);
-
-    return CONFIG_SUCCESS;
-}
-
-void config_log(Config* config, LogLevel level, const char* format, ...) {
-    if (!config || level > config->log_level) {
-        return;
-    }
-
-    // Rotate log if needed
-    rotate_log_if_needed(config);
-
-    FILE* log_file = fopen(config->log_file_path, "a");
-    if (!log_file) {
-        return;
-    }
-
-    // Get timestamp
-    char timestamp[26];
-    get_timestamp(timestamp, sizeof(timestamp));
-
-    // Get log level string
-    const char* level_str;
-    switch (level) {
-        case LOG_LEVEL_ERROR: level_str = "ERROR"; break;
-        case LOG_LEVEL_INFO:  level_str = "INFO"; break;
-        case LOG_LEVEL_DEBUG: level_str = "DEBUG"; break;
-        default: level_str = "UNKNOWN"; break;
-    }
-
-    // Write timestamp and level
-    fprintf(log_file, "[%s] [%s] ", timestamp, level_str);
-
-    // Write formatted message
-    va_list args;
-    va_start(args, format);
-    vfprintf(log_file, format, args);
-    va_end(args);
-
-    fprintf(log_file, "\n");
-    fclose(log_file);
-}
-
-// Frequency configuration
-ConfigError config_get_frequency(Config* config, int* frequency) {
-    FILE* freq_file = fopen(FREQ_CONFIG_PATH, "r");
-    if (!freq_file) {
-        *frequency = 60;  // Default to 60Hz
-        return CONFIG_SUCCESS;
-    }
-
-    char freq_str[4];
-    if (fgets(freq_str, sizeof(freq_str), freq_file) != NULL) {
-        *frequency = atoi(freq_str);
-    } else {
-        *frequency = 60;  // Default to 60Hz
-    }
-
-    fclose(freq_file);
-    return CONFIG_SUCCESS;
-}
-
-ConfigError config_set_frequency(Config* config, int frequency) {
-    if (frequency != 50 && frequency != 60) {
-        return CONFIG_ERROR_MEMORY;  // Invalid frequency
-    }
-
-    FILE* freq_file = fopen(FREQ_CONFIG_PATH, "w");
-    if (!freq_file) {
-        return CONFIG_ERROR_LOG_ACCESS;
-    }
-
-    fprintf(freq_file, "%d", frequency);
-    fclose(freq_file);
-    return CONFIG_SUCCESS;
-}
-
-// Helper function implementations
-static void get_timestamp(char* buffer, size_t size) {
-    time_t now;
-    time(&now);
-    struct tm* tm_info = localtime(&now);
-    strftime(buffer, size, "%Y-%m-%d %H:%M:%S", tm_info);
-}
-
-static ConfigError rotate_log_if_needed(Config* config) {
-    if (!config->rotating_log) {
-        return CONFIG_SUCCESS;
-    }
-
-    FILE* log_file = fopen(config->log_file_path, "r");
-    if (!log_file) {
-        return CONFIG_SUCCESS;  // File doesn't exist yet
-    }
-
-    // Get file size
-    fseek(log_file, 0, SEEK_END);
-    long size = ftell(log_file);
-    fclose(log_file);
-
-    if (size >= config->max_log_size) {
-        char backup_path[MAX_LOG_PATH_LENGTH];
-        snprintf(backup_path, sizeof(backup_path), "%s.old", config->log_file_path);
-        
-        // Remove old backup if it exists
-        remove(backup_path);
-        
-        // Rename current log to backup
-        rename(config->log_file_path, backup_path);
-    }
-
-    return CONFIG_SUCCESS;
-}
-
-static ConfigError ensure_directory_exists(const char* path) {
-    char dir_path[MAX_LOG_PATH_LENGTH];
-    strncpy(dir_path, path, sizeof(dir_path));
-
-    // Find last separator
-    char* last_sep = strrchr(dir_path, '\\');
-    if (last_sep) {
-        *last_sep = '\0';
-        
-        // Create directory if it doesn't exist
-        if (_mkdir(dir_path) != 0 && errno != EEXIST) {
-            return CONFIG_ERROR_LOG_ACCESS;
-        }
+    if (!found_port) {
+        log_error("No compatible USB ports found");
+        return CONFIG_ERROR_NO_PORTS;
     }
 
     return CONFIG_SUCCESS;
 }
 
 static bool is_target_usb_device(const char* hardware_id) {
-    return (strstr(hardware_id, USB_VENDOR_ID_2303) != NULL ||
-            strstr(hardware_id, USB_VENDOR_ID_23A3) != NULL);
-}
+    // Check for specific USB vendor and product IDs
+    const char* target_ids[] = {
+        "USB\\VID_0483&PID_5740",  // Example ID - adjust as needed
+        NULL
+    };
 
-// Getter/Setter implementations
-const char* config_get_port_name(const Config* config) {
-    return config ? config->port_name : NULL;
-}
-
-ConfigError config_set_port_name(Config* config, const char* port_name) {
-    if (!config || !port_name) {
-        return CONFIG_ERROR_MEMORY;
+    for (const char** id = target_ids; *id != NULL; id++) {
+        if (strstr(hardware_id, *id) != NULL) {
+            log_debug("Found matching USB device ID: %s", hardware_id);
+            return true;
+        }
     }
-    strncpy(config->port_name, port_name, MAX_PORT_NAME_LENGTH - 1);
-    config->port_name[MAX_PORT_NAME_LENGTH - 1] = '\0';
+
+    return false;
+}
+
+static ConfigError create_directory_if_not_exists(const char* path) {
+    if (_mkdir(path) != 0 && errno != EEXIST) {
+        log_error("Failed to create directory: %s", path);
+        return CONFIG_ERROR_FILE_ACCESS;
+    }
+    log_debug("Directory created/verified: %s", path);
     return CONFIG_SUCCESS;
-}
-
-void config_set_service_mode(Config* config, bool enabled) {
-    if (config) {
-        config->is_service = enabled;
-    }
-}
-
-bool config_is_service_mode(const Config* config) {
-    return config ? config->is_service : false;
 }
 
 const char* config_get_error_string(ConfigError error) {
@@ -299,6 +292,9 @@ const char* config_get_error_string(ConfigError error) {
         case CONFIG_ERROR_PORT_ACCESS: return "Cannot access port";
         case CONFIG_ERROR_LOG_ACCESS: return "Cannot access log file";
         case CONFIG_ERROR_MEMORY: return "Memory error";
+        case CONFIG_ERROR_FILE_ACCESS: return "File access error";
+        case CONFIG_ERROR_INVALID_CONFIG: return "Invalid configuration";
+        case CONFIG_ERROR_JSON_PARSE: return "JSON parse error";
         default: return "Unknown error";
     }
 }

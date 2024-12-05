@@ -22,6 +22,35 @@ static const ModeVTable mode_0_vtable = {
     .get_emg_config = get_emg_config
 };
 
+/* NO NEED FOR specific __validate_values() function in C implementation:
+ *
+ * Validates CMS channel synchronization by checking the high nibble pattern.
+ * 
+ * This function implements the same validation logic as Python's __validate_values:
+ *   @staticmethod
+ *   def __validate_values(values):
+ *       for iteration, index in enumerate(range(0, 8, 2)):
+ *           if iteration != values[index] >> 4:
+ *               return False
+ *       return True
+ * 
+ * The validation ensures that:
+ * - Position 0: high nibble = 0  (0000 xxxx)
+ * - Position 2: high nibble = 1  (0001 xxxx)
+ * - Position 4: high nibble = 2  (0010 xxxx)
+ * - Position 6: high nibble = 3  (0011 xxxx)
+ * 
+ * This pattern validation is used by Mode0 through resync_bytes():
+ *   resync_bytes(data, length, MODE_0_BLOCK_SIZE, sync_cms_channels, NULL, 0, 0, &result)
+ * 
+ * By using sync_cms_channels as the validation function in resync_bytes, we achieve
+ * the same functionality as Python's __validate_values without needing a separate
+ * implementation in mode_0.c
+ */
+
+
+
+
 // Helper functions
 static uint16_t scale_low_value(uint8_t n_low, uint8_t n_high) {
     return ((n_low & 15) << 8) | n_high;
@@ -118,6 +147,59 @@ ErrorCode mode_0_process_values(Mode0* mode, const uint8_t* values, int16_t* dat
 
     return ERROR_NONE;
 }
+
+
+
+/*
+ * Generic byte synchronization function that matches and extends the Python implementation.
+ * 
+ * This function implements the same core logic as Python's _re_sync_bytes method from mode_0.py:
+ * - Searches for valid sync patterns in the data stream
+ * - Collects blocks of synchronized data
+ * - Stops when sync is lost after finding first valid block
+ * 
+ * While the Python implementation is specific to CMS channels:
+ *   @classmethod
+ *   def _re_sync_bytes(cls, values_bucket: List):
+ *       i = 0
+ *       final_values = []
+ *       found_first_set = False
+ *       while i < len(values_bucket) and len(values_bucket[i:]) >= 8:
+ *           cms_is_valid = re_sync_values_cms_channels(values_bucket[i:i + 8])
+ *           if cms_is_valid:
+ *               final_values.extend(values_bucket[i:i + 8])
+ *               found_first_set = True
+ *               i += 8
+ *           elif found_first_set:
+ *               break
+ *           else:
+ *               i += 1
+ * 
+ * This C implementation is more generic and flexible:
+ * - Supports two sync functions (with sync_func2 being optional)
+ * - Configurable sync offsets
+ * - Adjustable block sizes
+ * 
+ * When used for Mode 0 (CMS channels), it's called with:
+ *   resync_bytes(data, length, MODE_0_BLOCK_SIZE, sync_cms_channels, NULL, 0, 0, &result)
+ * Which effectively matches the Python implementation's behavior.
+ * 
+ * Parameters:
+ *   data          - Input byte array to synchronize
+ *   length        - Length of input data
+ *   block_size    - Size of each synchronized block
+ *   sync_func1    - Primary sync validation function
+ *   sync_func2    - Secondary sync validation function (optional, NULL if not used)
+ *   sync1_offset  - Offset for first sync function
+ *   sync2_offset  - Offset for second sync function
+ *   result        - Output structure containing synchronized data
+ * 
+ * Returns:
+ *   ErrorCode indicating success or specific failure condition
+ */
+
+
+
 
 ErrorCode mode_0_execute(Mode0* mode, uint8_t* output, size_t* output_length) {
     if (!mode || !output || !output_length) {

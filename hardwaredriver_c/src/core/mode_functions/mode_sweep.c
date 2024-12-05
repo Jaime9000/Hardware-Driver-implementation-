@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <time.h>
 
 // Private function declarations
 static ErrorCode execute(Mode* base, uint8_t* output, size_t* output_length);
@@ -12,7 +13,7 @@ static ErrorCode re_sync_bytes(const uint8_t* raw_data, size_t raw_length,
                              uint8_t* synced_data, size_t* synced_length);
 
 // Implementation
-ErrorCode mode_sweep_create(Mode** mode) {
+ErrorCode mode_sweep_create(Mode** mode, bool show_tilt_window, bool show_sweep_graph) {
     ModeSweep* sweep = (ModeSweep*)calloc(1, sizeof(ModeSweep));
     if (!sweep) return ERROR_MEMORY_ALLOCATION;
 
@@ -22,6 +23,37 @@ ErrorCode mode_sweep_create(Mode** mode) {
     sweep->is_first_run = true;
     sweep->front_angle = 0.0;
     sweep->side_angle = 0.0;
+    
+    // Initialize UI components
+    sweep->show_tilt_window = show_tilt_window;
+    sweep->show_sweep_graph = show_sweep_graph;
+    
+    // Create and initialize graph
+    ErrorCode err = graph_create(&sweep->graph);
+    if (err != ERROR_NONE) {
+        free(sweep);
+        return err;
+    }
+
+    // Determine tilt enabled status from handshake
+    const char* version = serial_interface_get_version(sweep->base.interface);
+    sweep->tilt_enabled = (version && strcmp(version, "K7-MYO Ver 2.0") == 0);
+
+    // Start graph based on mode
+    err = mode_sweep_start(sweep);
+    if (err != ERROR_NONE) {
+        graph_destroy(sweep->graph);
+        free(sweep);
+        return err;
+    }
+
+    // Save mode type
+    err = mode_sweep_save_mode_type(show_sweep_graph);
+    if (err != ERROR_NONE) {
+        graph_destroy(sweep->graph);
+        free(sweep);
+        return err;
+    }
 
     *mode = (Mode*)sweep;
     return ERROR_NONE;
@@ -75,6 +107,28 @@ ErrorCode mode_sweep_compute_tilt_data(const uint8_t* tilt_values, double* front
         *side_angle *= -1;
     }
 
+    return ERROR_NONE;
+}
+
+ErrorCode mode_sweep_start(ModeSweep* mode) {
+    if (!mode || !mode->graph) return ERROR_INVALID_PARAMETER;
+    
+    return graph_start(mode->graph, 
+                      mode->show_tilt_window,
+                      mode->tilt_enabled);
+}
+
+ErrorCode mode_sweep_stop(ModeSweep* mode) {
+    if (!mode || !mode->graph) return ERROR_INVALID_PARAMETER;
+    return graph_stop(mode->graph);
+}
+
+ErrorCode mode_sweep_save_mode_type(bool show_sweep_graph) {
+    FILE* fp = fopen(K7_MODE_TYPE_PATH, "w");
+    if (!fp) return ERROR_FILE_OPERATION;
+    
+    fprintf(fp, "{\"show_sweep_graph\": %s}", show_sweep_graph ? "true" : "false");
+    fclose(fp);
     return ERROR_NONE;
 }
 
@@ -170,6 +224,14 @@ static ErrorCode execute(Mode* base, uint8_t* output, size_t* output_length) {
         mode->side_angle = side_sum / angle_count;
     }
 
+    // Update graph if running
+    if (mode->graph && graph_is_running(mode->graph)) {
+        time_t current_time = time(NULL);
+        error = graph_update_data(mode->graph, current_time, 
+                                mode->front_angle, mode->side_angle);
+        if (error != ERROR_NONE) return error;
+    }
+
     // Copy synced data to output
     memcpy(output, synced_data, synced_length);
     *output_length = synced_length;
@@ -180,6 +242,9 @@ static ErrorCode execute(Mode* base, uint8_t* output, size_t* output_length) {
 static void destroy(Mode* base) {
     if (base) {
         ModeSweep* mode = (ModeSweep*)base->impl;
+        if (mode->graph) {
+            graph_destroy(mode->graph);
+        }
         free(mode);
     }
 }

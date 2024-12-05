@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include "mode_44.h"
 #include "logger.h"
 
@@ -10,108 +9,79 @@ static int get_mode_number(const Mode* mode) {
 }
 
 static const uint8_t* get_emg_config(const Mode* mode, size_t* length) {
-    Mode44Raw* raw_mode = (Mode44Raw*)mode->impl;
-    *length = 1;
-    
-    static uint8_t config[1];
-    switch(raw_mode->filter_type) {
-        case NOTCH_FILTER_P: config[0] = 'p'; break;
-        case NOTCH_FILTER_Q: config[0] = 'q'; break;
-        case NOTCH_FILTER_R: config[0] = 'r'; break;
-        case NOTCH_FILTER_S: config[0] = 's'; break;
-        case NOTCH_FILTER_T: config[0] = 't'; break;
-        case NOTCH_FILTER_U: config[0] = 'u'; break;
-        case NOTCH_FILTER_V: config[0] = 'v'; break;
-        case NOTCH_FILTER_W: config[0] = 'w'; break;
-        default: config[0] = 'r'; break;
-    }
-    return config;
-}
-
-static bool wait_for_init(const uint8_t* data, size_t length) {
-    if (length < MODE_44_BLOCK_SIZE) return false;
-    
-    SyncResult sync_result;
-    ErrorCode error = resync_bytes(data, length, MODE_44_BLOCK_SIZE,
-                                 sync_emg_channels, NULL, 0, 0, &sync_result);
-    
-    bool result = sync_result.found_sync;
-    sync_result_free(&sync_result);
-    return result;
+    // Use Mode57's EMG config
+    return mode_57_get_emg_config(mode, length);
 }
 
 static ErrorCode execute(Mode* base, uint8_t* output, size_t* output_length) {
     Mode44Raw* mode = (Mode44Raw*)base->impl;
     
-    // Handle first run initialization
-    if (mode->is_first_run) {
-        uint8_t read_buffer[MODE_44_READ_SIZE];
-        size_t bytes_read;
-        int ignore_count = 0;
-        size_t bytes_thrown = 0;
-
-        while (bytes_thrown < MODE_44_INIT_THRESHOLD) {
-            ErrorCode error = serial_interface_read(mode->base.interface, 
-                                                 read_buffer, MODE_44_READ_SIZE, &bytes_read);
-            if (error != ERROR_NONE) continue;
-
-            bytes_thrown += bytes_read;
-            
-            if (wait_for_init(read_buffer, bytes_read)) {
-                ignore_count++;
-            }
-            
-            if (ignore_count > MODE_44_INIT_IGNORE_COUNT) break;
-        }
-        
-        mode->is_first_run = false;
+    // Get Mode57's output first
+    uint8_t* mode57_buffer = malloc(*output_length);
+    if (!mode57_buffer) {
+        return ERROR_MEMORY_ALLOCATION;
     }
-
-    // Read and process data
-    uint8_t read_buffer[MODE_44_MAX_COLLECT];
-    size_t bytes_read;
     
-    ErrorCode error = serial_interface_read(mode->base.interface, read_buffer, MODE_44_MAX_COLLECT, &bytes_read);
+    size_t mode57_length = *output_length;
+    ErrorCode error = mode_57_raw_execute(&mode->base, mode57_buffer, &mode57_length);
     if (error != ERROR_NONE) {
+        free(mode57_buffer);
         return error;
     }
 
-    SyncResult sync_result;
-    error = resync_bytes(read_buffer, bytes_read, MODE_44_BLOCK_SIZE,
-                        sync_emg_channels, NULL, 0, 0, &sync_result);
-
-    if (!sync_result.found_sync) {
-        log_error("Cannot verify byte order in Mode 44");
-        sync_result_free(&sync_result);
-        return ERROR_SYNC_FAILED;
+    // Now repeat each 8-byte block 5 times
+    size_t output_pos = 0;
+    for (size_t i = 0; i < mode57_length; i += 16) {  // Mode57 uses 16-byte blocks
+        for (int repeat = 0; repeat < MODE_44_REPEAT_COUNT; repeat++) {
+            if (output_pos + MODE_44_BLOCK_SIZE > *output_length) {
+                free(mode57_buffer);
+                *output_length = output_pos;
+                return ERROR_NONE;
+            }
+            // Copy only first 8 bytes of each 16-byte block
+            memcpy(output + output_pos, mode57_buffer + i, MODE_44_BLOCK_SIZE);
+            output_pos += MODE_44_BLOCK_SIZE;
+        }
     }
 
-    size_t copy_size = sync_result.synced_length;
-    if (copy_size > *output_length) {
-        copy_size = *output_length;
-    }
-    
-    memcpy(output, sync_result.synced_data, copy_size);
-    *output_length = copy_size;
-
-    sync_result_free(&sync_result);
+    free(mode57_buffer);
+    *output_length = output_pos;
     return ERROR_NONE;
 }
 
-static ErrorCode execute_not_connected(Mode* base, uint8_t* output, size_t* output_length) {
-    static const uint8_t pattern[] = {
-        0x80, 0x01, 0x90, 0x01, 0xA0, 0x01, 0xB0, 0x01,
-        0xC0, 0x01, 0xD0, 0x01, 0xE0, 0x01, 0xF0, 0x01
-    };
-
-    size_t pattern_size = sizeof(pattern);
-    size_t max_repeats = *output_length / pattern_size;
+static ErrorCode execute_no_image(Mode* base, uint8_t* output, size_t* output_length) {
+    Mode44RawNoImage* mode = (Mode44RawNoImage*)base->impl;
     
-    for (size_t i = 0; i < max_repeats; i++) {
-        memcpy(output + (i * pattern_size), pattern, pattern_size);
+    // Get Mode57NoImage's output first
+    uint8_t* mode57_buffer = malloc(*output_length);
+    if (!mode57_buffer) {
+        return ERROR_MEMORY_ALLOCATION;
     }
     
-    *output_length = max_repeats * pattern_size;
+    size_t mode57_length = *output_length;
+    ErrorCode error = mode_57_raw_no_image_execute(&mode->base, mode57_buffer, &mode57_length);
+    if (error != ERROR_NONE) {
+        free(mode57_buffer);
+        return error;
+    }
+
+    // Now repeat each 8-byte block 5 times
+    size_t output_pos = 0;
+    for (size_t i = 0; i < mode57_length; i += 16) {  // Mode57 uses 16-byte blocks
+        for (int repeat = 0; repeat < MODE_44_REPEAT_COUNT; repeat++) {
+            if (output_pos + MODE_44_BLOCK_SIZE > *output_length) {
+                free(mode57_buffer);
+                *output_length = output_pos;
+                return ERROR_NONE;
+            }
+            // Copy only first 8 bytes of each 16-byte block
+            memcpy(output + output_pos, mode57_buffer + i, MODE_44_BLOCK_SIZE);
+            output_pos += MODE_44_BLOCK_SIZE;
+        }
+    }
+
+    free(mode57_buffer);
+    *output_length = output_pos;
     return ERROR_NONE;
 }
 
@@ -119,8 +89,14 @@ static const ModeVTable mode_44_vtable = {
     .get_mode_number = get_mode_number,
     .get_emg_config = get_emg_config,
     .execute = execute,
-    .execute_not_connected = execute_not_connected,
-    .destroy = NULL
+    .execute_not_connected = mode_sweep_execute_not_connected
+};
+
+static const ModeVTable mode_44_no_image_vtable = {
+    .get_mode_number = get_mode_number,
+    .get_emg_config = get_emg_config,
+    .execute = execute_no_image,
+    .execute_not_connected = mode_sweep_execute_not_connected
 };
 
 ErrorCode mode_44_raw_create(Mode44Raw** mode, SerialInterface* interface) {
@@ -135,14 +111,15 @@ ErrorCode mode_44_raw_create(Mode44Raw** mode, SerialInterface* interface) {
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    ErrorCode error = mode_init(&new_mode->base, interface, &mode_44_vtable, new_mode);
+    // Initialize as Mode57Raw
+    ErrorCode error = mode_57_raw_create((Mode57Raw**)&new_mode, interface);
     if (error != ERROR_NONE) {
         free(new_mode);
         return error;
     }
 
-    new_mode->is_first_run = true;
-    new_mode->filter_type = NOTCH_FILTER_NONE;
+    // Override only the vtable
+    ((Mode*)new_mode)->vtable = &mode_44_vtable;
 
     *mode = new_mode;
     log_debug("Mode 44 Raw created successfully");
@@ -152,16 +129,40 @@ ErrorCode mode_44_raw_create(Mode44Raw** mode, SerialInterface* interface) {
 void mode_44_raw_destroy(Mode44Raw* mode) {
     if (mode) {
         log_debug("Destroying Mode 44 Raw");
-        free(mode);
+        mode_57_raw_destroy((Mode57Raw*)mode);
     }
 }
 
-ErrorCode mode_44_raw_notch_create(Mode44Raw** mode, SerialInterface* interface, NotchFilterType filter_type) {
-    ErrorCode error = mode_44_raw_create(mode, interface);
+ErrorCode mode_44_raw_no_image_create(Mode44RawNoImage** mode, SerialInterface* interface) {
+    if (!mode || !interface) {
+        log_error("Invalid parameters in mode_44_raw_no_image_create");
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    Mode44RawNoImage* new_mode = (Mode44RawNoImage*)malloc(sizeof(Mode44RawNoImage));
+    if (!new_mode) {
+        log_error("Failed to allocate Mode44RawNoImage");
+        return ERROR_MEMORY_ALLOCATION;
+    }
+
+    // Initialize as Mode57RawNoImage
+    ErrorCode error = mode_57_raw_no_image_create((Mode57RawNoImage**)&new_mode, interface);
     if (error != ERROR_NONE) {
+        free(new_mode);
         return error;
     }
 
-    (*mode)->filter_type = filter_type;
+    // Override only the vtable
+    ((Mode*)new_mode)->vtable = &mode_44_no_image_vtable;
+
+    *mode = new_mode;
+    log_debug("Mode 44 Raw No Image created successfully");
     return ERROR_NONE;
+}
+
+void mode_44_raw_no_image_destroy(Mode44RawNoImage* mode) {
+    if (mode) {
+        log_debug("Destroying Mode 44 Raw No Image");
+        mode_57_raw_no_image_destroy((Mode57RawNoImage*)mode);
+    }
 }

@@ -3,15 +3,15 @@
 #include "mode_52.h"
 #include "logger.h"
 
-static int get_mode_number(const Mode* mode) {
+static int get_mode_number(const ModeBase* mode) {
     (void)mode;
     return 52;
 }
 
-static const uint8_t* get_emg_config(const Mode* mode, size_t* length) {
+static const uint8_t* get_emg_config(const ModeBase* mode, size_t* length) {
     (void)mode;  // Mode 52 always uses 'r' config
-    *length = 1;
     static const uint8_t config[] = {'r'};
+    *length = 1;
     return config;
 }
 
@@ -26,14 +26,16 @@ static bool validate_values(const uint8_t* data) {
     return true;
 }
 
-static ErrorCode execute(Mode* base, uint8_t* output, size_t* output_length) {
-    Mode52Raw* mode = (Mode52Raw*)base->impl;
+static ErrorCode execute_mode(ModeBase* base, uint8_t* output, size_t* output_length) {
+    if (!base || !output || !output_length) {
+        return ERROR_INVALID_PARAMETER;
+    }
     
     // Read and process data
     uint8_t read_buffer[MODE_52_MAX_COLLECT];
     size_t bytes_read;
     
-    ErrorCode error = serial_interface_read(mode->base.interface, read_buffer, MODE_52_MAX_COLLECT, &bytes_read);
+    ErrorCode error = serial_interface_read_data(base->interface, read_buffer, &bytes_read, MODE_52_MAX_COLLECT);
     if (error != ERROR_NONE) {
         return error;
     }
@@ -72,7 +74,12 @@ static ErrorCode execute(Mode* base, uint8_t* output, size_t* output_length) {
     return ERROR_NONE;
 }
 
-static ErrorCode execute_not_connected(Mode* base, uint8_t* output, size_t* output_length) {
+static ErrorCode execute_mode_not_connected(ModeBase* base, uint8_t* output, size_t* output_length) {
+    if (!output || !output_length) {
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    // Match Python's pattern: [0, 0, 3<<4, 0, 4<<4, 0, 5<<4, 0]
     static const uint8_t pattern[] = {
         0x00, 0x00, 0x30, 0x00, 0x40, 0x00, 0x50, 0x00
     };
@@ -88,16 +95,17 @@ static ErrorCode execute_not_connected(Mode* base, uint8_t* output, size_t* outp
     return ERROR_NONE;
 }
 
-static const ModeVTable mode_52_vtable = {
+static const ModeBaseVTable mode_52_vtable = {
     .get_mode_number = get_mode_number,
     .get_emg_config = get_emg_config,
-    .execute = execute,
-    .execute_not_connected = execute_not_connected,
+    .execute_mode = execute_mode,
+    .execute_mode_not_connected = execute_mode_not_connected,
+    .stop = NULL,
     .destroy = NULL
 };
 
-ErrorCode mode_52_raw_create(Mode52Raw** mode, SerialInterface* interface) {
-    if (!mode || !interface) {
+ErrorCode mode_52_raw_create(Mode52Raw** mode, SerialInterface* interface, ProcessManager* process_manager) {
+    if (!mode || !interface || !process_manager) {
         log_error("Invalid parameters in mode_52_raw_create");
         return ERROR_INVALID_PARAMETER;
     }
@@ -108,14 +116,14 @@ ErrorCode mode_52_raw_create(Mode52Raw** mode, SerialInterface* interface) {
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    ErrorCode error = mode_init(&new_mode->base, interface, &mode_52_vtable, new_mode);
+    ErrorCode error = mode_base_create(&new_mode->base, interface, process_manager,
+                                     &mode_52_vtable, new_mode);
     if (error != ERROR_NONE) {
         free(new_mode);
         return error;
     }
 
     new_mode->is_first_run = true;
-    new_mode->filter_type = NOTCH_FILTER_NONE;
 
     *mode = new_mode;
     log_debug("Mode 52 Raw created successfully");
@@ -124,17 +132,8 @@ ErrorCode mode_52_raw_create(Mode52Raw** mode, SerialInterface* interface) {
 
 void mode_52_raw_destroy(Mode52Raw* mode) {
     if (mode) {
-        log_debug("Destroying Mode 52 Raw");
+        mode_base_destroy(&mode->base);
         free(mode);
+        log_debug("Mode 52 Raw destroyed");
     }
-}
-
-ErrorCode mode_52_raw_notch_create(Mode52Raw** mode, SerialInterface* interface, NotchFilterType filter_type) {
-    ErrorCode error = mode_52_raw_create(mode, interface);
-    if (error != ERROR_NONE) {
-        return error;
-    }
-
-    (*mode)->filter_type = filter_type;
-    return ERROR_NONE;
 }

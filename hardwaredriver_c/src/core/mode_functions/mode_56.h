@@ -1,10 +1,9 @@
 #ifndef MODE_56_H
 #define MODE_56_H
 
-#include "mode.h"
+#include "mode_base.h"
 #include "serial_interface.h"
 #include "error_codes.h"
-#include "byte_sync.h"
 
 // Constants
 #define MODE_56_READ_SIZE 320
@@ -14,16 +13,12 @@
 #define MODE_56_MAX_COLLECT 1600
 
 typedef struct {
-    Mode base;
+    ModeBase base;
     bool is_first_run;
-    NotchFilterType filter_type;
 } Mode56Raw;
 
 // Constructor/Destructor
-ErrorCode mode_56_raw_create(Mode56Raw** mode, SerialInterface* interface);
+ErrorCode mode_56_raw_create(Mode56Raw** mode, SerialInterface* interface, ProcessManager* process_manager);
 void mode_56_raw_destroy(Mode56Raw* mode);
-
-// Notch filter variant
-ErrorCode mode_56_raw_notch_create(Mode56Raw** mode, SerialInterface* interface, NotchFilterType filter_type);
 
 #endif // MODE_56_H

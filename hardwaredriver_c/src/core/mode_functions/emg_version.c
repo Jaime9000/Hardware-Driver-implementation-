@@ -4,59 +4,22 @@
 #include "emg_version.h"
 #include "logger.h"
 
-// VTable implementations
-static int get_mode_number(const Mode* mode) {
-    (void)mode;  // Unused parameter
+// VTable implementations for EMGVersionAdsOn
+static int emg_version_get_number(const ModeBase* mode) {
+    (void)mode;
     return 118;
 }
 
-static const uint8_t* get_emg_config(const Mode* mode, size_t* length) {
+static const uint8_t* emg_version_get_emg_config(const ModeBase* mode, size_t* length) {
     static const uint8_t config[] = {'r'};
     *length = sizeof(config);
     return config;
 }
 
-static const ModeVTable emg_version_vtable = {
-    .get_mode_number = get_mode_number,
-    .get_emg_config = get_emg_config
-};
-
-// EMGVersionAdsOn Implementation
-ErrorCode emg_version_create(EMGVersionAdsOn** mode, SerialInterface* interface) {
-    if (!mode || !interface) {
-        log_error("Invalid parameters in emg_version_create");
-        return ERROR_INVALID_PARAMETER;
-    }
-
-    EMGVersionAdsOn* new_mode = (EMGVersionAdsOn*)malloc(sizeof(EMGVersionAdsOn));
-    if (!new_mode) {
-        log_error("Failed to allocate EMGVersionAdsOn");
-        return ERROR_MEMORY_ALLOCATION;
-    }
-
-    ErrorCode error = mode_init(&new_mode->base, interface, &emg_version_vtable, new_mode);
-    if (error != ERROR_NONE) {
-        free(new_mode);
-        return error;
-    }
-
-    memset(new_mode->version_string, 0, VERSION_STRING_MAX_LENGTH);
-    *mode = new_mode;
-    log_debug("EMG Version mode created successfully");
-    return ERROR_NONE;
-}
-
-void emg_version_destroy(EMGVersionAdsOn* mode) {
-    if (mode) {
-        log_debug("Destroying EMG Version mode");
-        free(mode);
-    }
-}
-
-static ErrorCode emg_version_execute(Mode* base, uint8_t* output, size_t* output_length) {
-    EMGVersionAdsOn* mode = (EMGVersionAdsOn*)base->impl;
+static ErrorCode emg_version_execute(ModeBase* mode, uint8_t* output, size_t* output_length) {
+    EMGVersionImpl* impl = (EMGVersionImpl*)mode->impl;
     
-    ErrorCode error = serial_interface_handshake(mode->base.interface);
+    ErrorCode error = mode_base_handshake(mode);
     if (error != ERROR_NONE) {
         return error;
     }
@@ -64,7 +27,7 @@ static ErrorCode emg_version_execute(Mode* base, uint8_t* output, size_t* output
     uint8_t version_data[VERSION_DATA_LENGTH];
     size_t bytes_read;
     
-    error = serial_interface_read(mode->base.interface, version_data, VERSION_DATA_LENGTH, &bytes_read);
+    error = serial_interface_read_data(mode->interface, version_data, &bytes_read, VERSION_DATA_LENGTH);
     if (error != ERROR_NONE || bytes_read != VERSION_DATA_LENGTH) {
         log_error("Unable to parse all values");
         return ERROR_INVALID_DATA;
@@ -72,25 +35,25 @@ static ErrorCode emg_version_execute(Mode* base, uint8_t* output, size_t* output
 
     // Format version string based on data
     if (version_data[2] == 0 && version_data[3] == 0) {
-        strncpy(mode->version_string, "0.0", VERSION_STRING_MAX_LENGTH - 1);
+        strncpy(impl->version_string, "0.0", VERSION_STRING_MAX_LENGTH - 1);
     } else {
-        snprintf(mode->version_string, VERSION_STRING_MAX_LENGTH, "%d.%d", 
+        snprintf(impl->version_string, VERSION_STRING_MAX_LENGTH, "%d.%d", 
                 version_data[2] - 48, version_data[3] - 48);
     }
 
-    size_t version_length = strlen(mode->version_string);
+    size_t version_length = strlen(impl->version_string);
     if (*output_length < version_length) {
         log_error("Output buffer too small for version string");
         return ERROR_BUFFER_OVERFLOW;
     }
 
-    memcpy(output, mode->version_string, version_length);
+    memcpy(output, impl->version_string, version_length);
     *output_length = version_length;
     
     return ERROR_NONE;
 }
 
-static ErrorCode emg_version_execute_not_connected(Mode* base, uint8_t* output, size_t* output_length) {
+static ErrorCode emg_version_execute_not_connected(ModeBase* mode, uint8_t* output, size_t* output_length) {
     const char* default_version = "1.2";
     size_t version_length = strlen(default_version);
     
@@ -104,44 +67,48 @@ static ErrorCode emg_version_execute_not_connected(Mode* base, uint8_t* output, 
     return ERROR_NONE;
 }
 
-// Hardware Connection Check Implementation
-ErrorCode hardware_connection_create(CheckHardwareConnection** mode, SerialInterface* interface) {
-    if (!mode || !interface) {
-        log_error("Invalid parameters in hardware_connection_create");
-        return ERROR_INVALID_PARAMETER;
-    }
+static void emg_version_stop(ModeBase* mode) {
+    // No specific stop functionality needed
+    (void)mode;
+}
 
-    CheckHardwareConnection* new_mode = (CheckHardwareConnection*)malloc(sizeof(CheckHardwareConnection));
-    if (!new_mode) {
-        log_error("Failed to allocate CheckHardwareConnection");
+static void emg_version_destroy_impl(ModeBase* mode) {
+    if (mode && mode->impl) {
+        free(mode->impl);
+        mode->impl = NULL;
+    }
+}
+
+// VTable for EMGVersionAdsOn
+static const ModeBaseVTable emg_version_vtable = {
+    .get_mode_number = emg_version_get_number,
+    .get_emg_config = emg_version_get_emg_config,
+    .execute_mode = emg_version_execute,
+    .execute_mode_not_connected = emg_version_execute_not_connected,
+    .stop = emg_version_stop,
+    .destroy = emg_version_destroy_impl
+};
+
+ErrorCode emg_version_create(ModeBase** mode, SerialInterface* interface, ProcessManager* process_manager) {
+    EMGVersionImpl* impl = (EMGVersionImpl*)malloc(sizeof(EMGVersionImpl));
+    if (!impl) {
+        log_error("Failed to allocate EMGVersionImpl");
         return ERROR_MEMORY_ALLOCATION;
     }
-
-    ErrorCode error = emg_version_create(&new_mode->base, interface);
+    
+    memset(impl->version_string, 0, VERSION_STRING_MAX_LENGTH);
+    
+    ErrorCode error = mode_base_create(mode, interface, process_manager, &emg_version_vtable, impl);
     if (error != ERROR_NONE) {
-        free(new_mode);
+        free(impl);
         return error;
     }
-
-    *mode = new_mode;
-    log_debug("Hardware Connection Check mode created successfully");
+    
     return ERROR_NONE;
 }
 
-void hardware_connection_destroy(CheckHardwareConnection* mode) {
-    if (mode) {
-        log_debug("Destroying Hardware Connection Check mode");
-        emg_version_destroy(&mode->base);
-        free(mode);
-    }
-}
-
-static ErrorCode hardware_connection_execute(Mode* base, uint8_t* output, size_t* output_length) {
-    // Call parent's execute method
-    return emg_version_execute(base, output, output_length);
-}
-
-static ErrorCode hardware_connection_execute_not_connected(Mode* base, uint8_t* output, size_t* output_length) {
+// Hardware Connection Check Implementation
+static ErrorCode hardware_connection_execute_not_connected(ModeBase* mode, uint8_t* output, size_t* output_length) {
     const char* not_connected = "not-connected";
     size_t msg_length = strlen(not_connected);
     
@@ -152,5 +119,33 @@ static ErrorCode hardware_connection_execute_not_connected(Mode* base, uint8_t* 
 
     memcpy(output, not_connected, msg_length);
     *output_length = msg_length;
+    return ERROR_NONE;
+}
+
+// VTable for Hardware Connection Check
+static const ModeBaseVTable hardware_connection_vtable = {
+    .get_mode_number = emg_version_get_number,
+    .get_emg_config = emg_version_get_emg_config,
+    .execute_mode = emg_version_execute,
+    .execute_mode_not_connected = hardware_connection_execute_not_connected,
+    .stop = emg_version_stop,
+    .destroy = emg_version_destroy_impl
+};
+
+ErrorCode hardware_connection_create(ModeBase** mode, SerialInterface* interface, ProcessManager* process_manager) {
+    EMGVersionImpl* impl = (EMGVersionImpl*)malloc(sizeof(EMGVersionImpl));
+    if (!impl) {
+        log_error("Failed to allocate EMGVersionImpl for hardware connection");
+        return ERROR_MEMORY_ALLOCATION;
+    }
+    
+    memset(impl->version_string, 0, VERSION_STRING_MAX_LENGTH);
+    
+    ErrorCode error = mode_base_create(mode, interface, process_manager, &hardware_connection_vtable, impl);
+    if (error != ERROR_NONE) {
+        free(impl);
+        return error;
+    }
+    
     return ERROR_NONE;
 }

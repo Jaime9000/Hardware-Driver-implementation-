@@ -3,167 +3,182 @@
 #include <time.h>
 #include "mode_43.h"
 #include "logger.h"
+#include "simulation_function_generator_600mhz.h"
 
-static int get_mode_number(const Mode* mode) {
+static int get_mode_number(const ModeBase* mode) {
     (void)mode;
     return 43;
 }
 
-static const uint8_t* get_emg_config(const Mode* mode, size_t* length) {
-    Mode43Raw* raw_mode = (Mode43Raw*)mode->impl;
+static const uint8_t* get_emg_config(const ModeBase* mode, size_t* length) {
+    Mode43* impl = (Mode43*)mode->impl;
     *length = 1;
     
     static uint8_t config[1];
-    switch(raw_mode->filter_type) {
-        case NOTCH_FILTER_P: config[0] = 'p'; break;
-        case NOTCH_FILTER_Q: config[0] = 'q'; break;
-        case NOTCH_FILTER_R: config[0] = 'r'; break;
-        case NOTCH_FILTER_S: config[0] = 's'; break;
-        case NOTCH_FILTER_T: config[0] = 't'; break;
-        case NOTCH_FILTER_U: config[0] = 'u'; break;
-        case NOTCH_FILTER_V: config[0] = 'v'; break;
-        case NOTCH_FILTER_W: config[0] = 'w'; break;
-        default: config[0] = 'r'; break;
+    switch(impl->mode_type) {
+        case MODE_43_TYPE_RAW_EMG:
+            config[0] = 't';
+            break;
+        case MODE_43_TYPE_NOTCH_P:
+            config[0] = 'p';
+            break;
+        case MODE_43_TYPE_NOTCH_Q:
+            config[0] = 'q';
+            break;
+        case MODE_43_TYPE_NOTCH_R:
+            config[0] = 'r';
+            break;
+        case MODE_43_TYPE_NOTCH_S:
+            config[0] = 's';
+            break;
+        case MODE_43_TYPE_NOTCH_T:
+            config[0] = 't';
+            break;
+        case MODE_43_TYPE_NOTCH_U:
+            config[0] = 'u';
+            break;
+        case MODE_43_TYPE_NOTCH_V:
+            config[0] = 'v';
+            break;
+        case MODE_43_TYPE_NOTCH_W:
+            config[0] = 'w';
+            break;
+        default:
+            config[0] = 'r';
+            break;
     }
     return config;
 }
 
-static ErrorCode execute(Mode* base, uint8_t* output, size_t* output_length) {
-    Mode43Raw* mode = (Mode43Raw*)base->impl;
+static ErrorCode execute_mode_raw_emg(ModeBase* base, uint8_t* output, size_t* output_length) {
+    Mode43* impl = (Mode43*)base->impl;
     
-    // Handle first run initialization
-    if (!mode->is_first_run) {
-        uint8_t temp_buffer[MODE_43_READ_SIZE];
-        size_t bytes_thrown = 0;
+    if (impl->is_first_run) {
+        // Skip initial bytes on first run
+        uint8_t buffer[MODE_43_INIT_BYTES];
+        size_t bytes_read = MODE_43_INIT_BYTES;
         
-        while (bytes_thrown < MODE_43_INIT_BYTES) {
-            size_t bytes_read;
-            ErrorCode error = serial_interface_read(mode->base.interface, 
-                                                  temp_buffer, 
-                                                  MODE_43_READ_SIZE, 
-                                                  &bytes_read);
-            if (error != ERROR_NONE) return error;
-            bytes_thrown += bytes_read;
-        }
-        mode->is_first_run = true;
-    }
-
-    // Read and process data
-    uint8_t* data_collected = malloc(MODE_43_MAX_COLLECT);
-    if (!data_collected) return ERROR_MEMORY_ALLOCATION;
-    
-    size_t total_collected = 0;
-    clock_t start_time = clock();
-    
-    while (total_collected < MODE_43_MAX_COLLECT) {
-        size_t bytes_read;
-        ErrorCode error = serial_interface_read(mode->base.interface, 
-                                              data_collected + total_collected,
-                                              MODE_43_READ_SIZE, 
-                                              &bytes_read);
+        ErrorCode error = serial_interface_read(base->interface, buffer, &bytes_read, MODE_43_TIMEOUT_MS);
         if (error != ERROR_NONE) {
-            free(data_collected);
             return error;
         }
         
-        total_collected += bytes_read;
-        
-        clock_t current_time = clock();
-        if (((current_time - start_time) * 1000.0) / CLOCKS_PER_SEC > MODE_43_TIMEOUT_MS) {
-            break;
-        }
-    }
-
-    // Use byte_sync.h functionality for resyncing
-    SyncResult sync_result;
-    ErrorCode error = resync_bytes(data_collected, total_collected, MODE_43_BLOCK_SIZE,
-                                 sync_emg_channels, NULL, 0, 0, &sync_result);
-    
-    free(data_collected);
-
-    if (!sync_result.found_sync) {
-        sync_result_free(&sync_result);
-        return ERROR_SYNC_FAILED;
-    }
-
-    // Copy to output buffer
-    size_t copy_size = sync_result.synced_length;
-    if (copy_size > *output_length) {
-        copy_size = *output_length;
+        impl->is_first_run = false;
     }
     
-    memcpy(output, sync_result.synced_data, copy_size);
-    *output_length = copy_size;
-
-    sync_result_free(&sync_result);
-    return ERROR_NONE;
+    size_t bytes_to_read = MODE_43_READ_SIZE;
+    return serial_interface_read(base->interface, output, &bytes_to_read, MODE_43_TIMEOUT_MS);
 }
 
-static ErrorCode execute_not_connected(Mode* base, uint8_t* output, size_t* output_length) {
-    // Generate simulated data pattern for EMG channels
-    static const uint8_t pattern[] = {
-        0x80, 0x01, 0x90, 0x01, 0xA0, 0x01, 0xB0, 0x01,
-        0xC0, 0x01, 0xD0, 0x01, 0xE0, 0x01, 0xF0, 0x01
-    };
-
-    size_t pattern_size = sizeof(pattern);
-    size_t max_repeats = *output_length / pattern_size;
+static ErrorCode execute_mode_raw(ModeBase* base, uint8_t* output, size_t* output_length) {
+    Mode43* impl = (Mode43*)base->impl;
     
-    for (size_t i = 0; i < max_repeats; i++) {
-        memcpy(output + (i * pattern_size), pattern, pattern_size);
+    if (impl->is_first_run) {
+        // Initialize EMG configuration
+        size_t config_length;
+        const uint8_t* config = get_emg_config(base, &config_length);
+        
+        ErrorCode error = serial_interface_write(base->interface, config, config_length);
+        if (error != ERROR_NONE) {
+            return error;
+        }
+        
+        // Skip initial bytes
+        uint8_t buffer[MODE_43_INIT_BYTES];
+        size_t bytes_read = MODE_43_INIT_BYTES;
+        
+        error = serial_interface_read(base->interface, buffer, &bytes_read, MODE_43_TIMEOUT_MS);
+        if (error != ERROR_NONE) {
+            return error;
+        }
+        
+        impl->is_first_run = false;
     }
     
-    *output_length = max_repeats * pattern_size;
+    size_t bytes_to_read = MODE_43_READ_SIZE;
+    return serial_interface_read(base->interface, output, &bytes_to_read, MODE_43_TIMEOUT_MS);
+}
+
+static ErrorCode execute_mode_not_connected(ModeBase* base, uint8_t* output, size_t* output_length) {
+    Mode43* impl = (Mode43*)base->impl;
+    
+    // Calculate total size needed (all samples flattened)
+    size_t total_size = SIMULATION_SAMPLE_COUNT * SIMULATION_SAMPLE_WIDTH;
+    
+    // Check if output buffer is large enough
+    if (total_size > *output_length) {
+        return ERROR_BUFFER_OVERFLOW;
+    }
+
+    // Flatten the 2D array into the output buffer
+    size_t offset = 0;
+    for (size_t i = 0; i < SIMULATION_SAMPLE_COUNT; i++) {
+        const uint8_t* sample = get_simulation_sample_data(i);
+        if (!sample) {
+            return ERROR_INVALID_STATE;
+        }
+        
+        memcpy(output + offset, sample, SIMULATION_SAMPLE_WIDTH);
+        offset += SIMULATION_SAMPLE_WIDTH;
+    }
+
+    *output_length = total_size;
     return ERROR_NONE;
 }
 
 static const ModeVTable mode_43_vtable = {
     .get_mode_number = get_mode_number,
-    .get_emg_config = get_emg_config,
-    .execute = execute,
-    .execute_not_connected = execute_not_connected,
+    .execute_mode = execute_mode_raw,
+    .execute_mode_raw_emg = execute_mode_raw_emg,
+    .execute_mode_not_connected = execute_mode_not_connected,
+    .stop = NULL,
     .destroy = NULL
 };
 
-ErrorCode mode_43_raw_create(Mode43Raw** mode, SerialInterface* interface) {
-    if (!mode || !interface) {
-        log_error("Invalid parameters in mode_43_raw_create");
+static ErrorCode mode_43_create_base(Mode43** mode, SerialInterface* interface, 
+                                   ProcessManager* process_manager, Mode43Type type) {
+    if (!mode || !interface || !process_manager) {
         return ERROR_INVALID_PARAMETER;
     }
 
-    Mode43Raw* new_mode = (Mode43Raw*)malloc(sizeof(Mode43Raw));
+    Mode43* new_mode = (Mode43*)malloc(sizeof(Mode43));
     if (!new_mode) {
-        log_error("Failed to allocate Mode43Raw");
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    ErrorCode error = mode_init(&new_mode->base, interface, &mode_43_vtable, new_mode);
+    ErrorCode error = mode_base_create(&new_mode->base, interface, process_manager, 
+                                     &mode_43_vtable, new_mode);
     if (error != ERROR_NONE) {
         free(new_mode);
         return error;
     }
 
-    new_mode->is_first_run = false;
-    new_mode->filter_type = NOTCH_FILTER_NONE;
+    new_mode->is_first_run = true;
+    new_mode->mode_type = type;
 
     *mode = new_mode;
-    log_debug("Mode 43 Raw created successfully");
     return ERROR_NONE;
 }
 
-void mode_43_raw_destroy(Mode43Raw* mode) {
+ErrorCode mode_43_raw_create(Mode43** mode, SerialInterface* interface, ProcessManager* process_manager) {
+    return mode_43_create_base(mode, interface, process_manager, MODE_43_TYPE_RAW);
+}
+
+ErrorCode mode_43_raw_emg_create(Mode43** mode, SerialInterface* interface, ProcessManager* process_manager) {
+    return mode_43_create_base(mode, interface, process_manager, MODE_43_TYPE_RAW_EMG);
+}
+
+ErrorCode mode_43_raw_notch_create(Mode43** mode, SerialInterface* interface, 
+                                 ProcessManager* process_manager, Mode43Type notch_type) {
+    if (notch_type < MODE_43_TYPE_NOTCH_P || notch_type > MODE_43_TYPE_NOTCH_W) {
+        return ERROR_INVALID_PARAMETER;
+    }
+    return mode_43_create_base(mode, interface, process_manager, notch_type);
+}
+
+void mode_43_destroy(Mode43* mode) {
     if (mode) {
-        log_debug("Destroying Mode 43 Raw");
+        mode_base_destroy(&mode->base);
         free(mode);
     }
-}
-
-ErrorCode mode_43_raw_notch_create(Mode43Raw** mode, SerialInterface* interface, NotchFilterType filter_type) {
-    ErrorCode error = mode_43_raw_create(mode, interface);
-    if (error != ERROR_NONE) {
-        return error;
-    }
-
-    (*mode)->filter_type = filter_type;
-    return ERROR_NONE;
 }

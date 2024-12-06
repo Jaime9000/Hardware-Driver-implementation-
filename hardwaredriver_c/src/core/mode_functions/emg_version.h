@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "mode.h"
+#include "mode_base.h"
 #include "serial_interface.h"
 #include "error_codes.h"
 
@@ -11,20 +11,14 @@
 #define VERSION_DATA_LENGTH 4
 
 typedef struct {
-    Mode base;
     char version_string[VERSION_STRING_MAX_LENGTH];
-} EMGVersionAdsOn;
+} EMGVersionImpl;
 
 // Base EMG Version mode
-ErrorCode emg_version_create(EMGVersionAdsOn** mode, SerialInterface* interface);
-void emg_version_destroy(EMGVersionAdsOn* mode);
+ErrorCode emg_version_create(ModeBase** mode, SerialInterface* interface, ProcessManager* process_manager);
+void emg_version_destroy(ModeBase* mode);
 
 // Hardware connection check variant
-typedef struct {
-    EMGVersionAdsOn base;
-} CheckHardwareConnection;
-
-ErrorCode hardware_connection_create(CheckHardwareConnection** mode, SerialInterface* interface);
-void hardware_connection_destroy(CheckHardwareConnection* mode);
+ErrorCode hardware_connection_create(ModeBase** mode, SerialInterface* interface, ProcessManager* process_manager);
 
 #endif // EMG_VERSION_H

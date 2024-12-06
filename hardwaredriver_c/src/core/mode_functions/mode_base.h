@@ -45,3 +45,12 @@ uint8_t mode_base_get_device_byte(const ModeBase* mode);
 bool mode_base_is_handshake_established(const ModeBase* mode);
 
 #endif // MODE_BASE_H
+
+
+/*
+* Consider updating implementation to use macros for the required virtual functions
+*
+*
+*
+*
+*/

@@ -3,19 +3,23 @@
 #include "mode_56.h"
 #include "logger.h"
 
-static int get_mode_number(const Mode* mode) {
+static int get_mode_number(const ModeBase* mode) {
     (void)mode;
     return 56;
 }
 
-static const uint8_t* get_emg_config(const Mode* mode, size_t* length) {
+static const uint8_t* get_emg_config(const ModeBase* mode, size_t* length) {
     (void)mode;  // Mode 56 always uses 'r' config
-    *length = 1;
     static const uint8_t config[] = {'r'};
+    *length = 1;
     return config;
 }
 
-static ErrorCode execute(Mode* base, uint8_t* output, size_t* output_length) {
+static ErrorCode execute_mode(ModeBase* base, uint8_t* output, size_t* output_length) {
+    if (!base || !output || !output_length) {
+        return ERROR_INVALID_PARAMETER;
+    }
+
     Mode56Raw* mode = (Mode56Raw*)base->impl;
     
     // Handle first run initialization
@@ -26,8 +30,10 @@ static ErrorCode execute(Mode* base, uint8_t* output, size_t* output_length) {
         size_t bytes_thrown = 0;
 
         while (bytes_thrown < MODE_56_INIT_BYTES) {
-            ErrorCode error = serial_interface_read(mode->base.interface, 
-                                                 read_buffer, MODE_56_READ_SIZE, &bytes_read);
+            ErrorCode error = serial_interface_read_data(base->interface, 
+                                                      read_buffer, 
+                                                      MODE_56_READ_SIZE, 
+                                                      &bytes_read);
             if (error != ERROR_NONE) continue;
 
             bytes_thrown += bytes_read;
@@ -39,11 +45,11 @@ static ErrorCode execute(Mode* base, uint8_t* output, size_t* output_length) {
         mode->is_first_run = false;
     }
 
-    // Read and process data
+    // Read and process data - matches Python's simple read
     uint8_t read_buffer[MODE_56_MAX_COLLECT];
     size_t bytes_read;
     
-    ErrorCode error = serial_interface_read(mode->base.interface, read_buffer, MODE_56_MAX_COLLECT, &bytes_read);
+    ErrorCode error = serial_interface_read_data(base->interface, read_buffer, MODE_56_MAX_COLLECT, &bytes_read);
     if (error != ERROR_NONE) {
         return error;
     }
@@ -59,7 +65,12 @@ static ErrorCode execute(Mode* base, uint8_t* output, size_t* output_length) {
     return ERROR_NONE;
 }
 
-static ErrorCode execute_not_connected(Mode* base, uint8_t* output, size_t* output_length) {
+static ErrorCode execute_mode_not_connected(ModeBase* base, uint8_t* output, size_t* output_length) {
+    if (!output || !output_length) {
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    // Match Python's pattern exactly: [7, 204, 23, 69, 55, 192, 72, 12, 88, 9]
     static const uint8_t pattern[] = {
         7, 204, 23, 69, 55, 192, 72, 12, 88, 9
     };
@@ -75,16 +86,17 @@ static ErrorCode execute_not_connected(Mode* base, uint8_t* output, size_t* outp
     return ERROR_NONE;
 }
 
-static const ModeVTable mode_56_vtable = {
+static const ModeBaseVTable mode_56_vtable = {
     .get_mode_number = get_mode_number,
     .get_emg_config = get_emg_config,
-    .execute = execute,
-    .execute_not_connected = execute_not_connected,
+    .execute_mode = execute_mode,
+    .execute_mode_not_connected = execute_mode_not_connected,
+    .stop = NULL,
     .destroy = NULL
 };
 
-ErrorCode mode_56_raw_create(Mode56Raw** mode, SerialInterface* interface) {
-    if (!mode || !interface) {
+ErrorCode mode_56_raw_create(Mode56Raw** mode, SerialInterface* interface, ProcessManager* process_manager) {
+    if (!mode || !interface || !process_manager) {
         log_error("Invalid parameters in mode_56_raw_create");
         return ERROR_INVALID_PARAMETER;
     }
@@ -95,14 +107,14 @@ ErrorCode mode_56_raw_create(Mode56Raw** mode, SerialInterface* interface) {
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    ErrorCode error = mode_init(&new_mode->base, interface, &mode_56_vtable, new_mode);
+    ErrorCode error = mode_base_create(&new_mode->base, interface, process_manager,
+                                     &mode_56_vtable, new_mode);
     if (error != ERROR_NONE) {
         free(new_mode);
         return error;
     }
 
     new_mode->is_first_run = true;
-    new_mode->filter_type = NOTCH_FILTER_NONE;
 
     *mode = new_mode;
     log_debug("Mode 56 Raw created successfully");
@@ -111,17 +123,8 @@ ErrorCode mode_56_raw_create(Mode56Raw** mode, SerialInterface* interface) {
 
 void mode_56_raw_destroy(Mode56Raw* mode) {
     if (mode) {
-        log_debug("Destroying Mode 56 Raw");
+        mode_base_destroy(&mode->base);
         free(mode);
+        log_debug("Mode 56 Raw destroyed");
     }
-}
-
-ErrorCode mode_56_raw_notch_create(Mode56Raw** mode, SerialInterface* interface, NotchFilterType filter_type) {
-    ErrorCode error = mode_56_raw_create(mode, interface);
-    if (error != ERROR_NONE) {
-        return error;
-    }
-
-    (*mode)->filter_type = filter_type;
-    return ERROR_NONE;
 }

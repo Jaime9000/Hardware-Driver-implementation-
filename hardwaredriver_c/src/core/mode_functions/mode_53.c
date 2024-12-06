@@ -3,96 +3,63 @@
 #include "mode_53.h"
 #include "logger.h"
 
-static int get_mode_number(const Mode* mode) {
+static int get_mode_number(const ModeBase* mode) {
     (void)mode;
     return 53;
 }
 
-static const uint8_t* get_emg_config(const Mode* mode, size_t* length) {
+static const uint8_t* get_emg_config(const ModeBase* mode, size_t* length) {
     (void)mode;  // Mode 53 always uses 'r' config
-    *length = 1;
     static const uint8_t config[] = {'r'};
+    *length = 1;
     return config;
 }
 
-static bool validate_esg_values(const uint8_t* data) {
-    // Check if first byte is 4<<4 and third byte is 5<<4
-    return ((data[0] >> 4) == 4) && ((data[2] >> 4) == 5);
-}
-
-static ErrorCode execute(Mode* base, uint8_t* output, size_t* output_length) {
-    Mode53Raw* mode = (Mode53Raw*)base->impl;
-    
-    // Handle first run initialization
-    if (mode->is_first_run) {
-        uint8_t read_buffer[MODE_53_READ_SIZE];
-        size_t bytes_read;
-        int ignore_count = 0;
-        size_t bytes_thrown = 0;
-
-        while (bytes_thrown < MODE_53_INIT_BYTES) {
-            ErrorCode error = serial_interface_read(mode->base.interface, 
-                                                 read_buffer, MODE_53_READ_SIZE, &bytes_read);
-            if (error != ERROR_NONE) continue;
-
-            bytes_thrown += bytes_read;
-            
-            if (validate_esg_values(read_buffer)) {
-                ignore_count++;
-            }
-            
-            if (ignore_count > MODE_53_INIT_IGNORE_COUNT) break;
-        }
-        
-        mode->is_first_run = false;
+static ErrorCode execute_mode(ModeBase* base, uint8_t* output, size_t* output_length) {
+    if (!base || !output || !output_length) {
+        return ERROR_INVALID_PARAMETER;
     }
 
     // Read and process data
-    uint8_t read_buffer[MODE_53_MAX_COLLECT];
+    uint8_t raw_data[MODE_53_MAX_COLLECT];
     size_t bytes_read;
     
-    ErrorCode error = serial_interface_read(mode->base.interface, read_buffer, MODE_53_MAX_COLLECT, &bytes_read);
+    ErrorCode error = serial_interface_read_data(base->interface, raw_data, MODE_53_MAX_COLLECT, &bytes_read);
     if (error != ERROR_NONE) {
         return error;
     }
 
-    // Custom sync implementation for ESG channels
-    size_t i = 0;
-    size_t final_size = 0;
-    bool found_first_set = false;
-    uint8_t synced_data[MODE_53_MAX_COLLECT];
+    SyncResult sync_result;
+    error = resync_bytes(raw_data, bytes_read, MODE_53_BLOCK_SIZE,
+                        sync_esg_channels, NULL,
+                        0, 0, &sync_result);
 
-    while (i < bytes_read && (bytes_read - i) >= MODE_53_BLOCK_SIZE) {
-        if (validate_esg_values(read_buffer + i)) {
-            memcpy(synced_data + final_size, read_buffer + i, MODE_53_BLOCK_SIZE);
-            final_size += MODE_53_BLOCK_SIZE;
-            found_first_set = true;
-            i += MODE_53_BLOCK_SIZE;
-        } else if (found_first_set) {
-            break;
-        } else {
-            i++;
-        }
-    }
-
-    if (final_size == 0) {
+    if (!sync_result.found_sync) {
         log_error("Cannot verify byte order in Mode 53");
+        sync_result_free(&sync_result);
         return ERROR_SYNC_FAILED;
     }
 
-    size_t copy_size = final_size;
+    size_t copy_size = sync_result.synced_length;
     if (copy_size > *output_length) {
         copy_size = *output_length;
     }
     
-    memcpy(output, synced_data, copy_size);
+    memcpy(output, sync_result.synced_data, copy_size);
     *output_length = copy_size;
+    
+    sync_result_free(&sync_result);
     return ERROR_NONE;
 }
 
-static ErrorCode execute_not_connected(Mode* base, uint8_t* output, size_t* output_length) {
+static ErrorCode execute_mode_not_connected(ModeBase* base, uint8_t* output, size_t* output_length) {
+    if (!output || !output_length) {
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    // Match Python's pattern: [4<<4, 0, 5<<4, 0]
     static const uint8_t pattern[] = {
-        4 << 4, 0, 5 << 4, 0
+        0x40, 0x00, 0x50, 0x00
     };
 
     size_t pattern_size = sizeof(pattern);
@@ -106,16 +73,17 @@ static ErrorCode execute_not_connected(Mode* base, uint8_t* output, size_t* outp
     return ERROR_NONE;
 }
 
-static const ModeVTable mode_53_vtable = {
+static const ModeBaseVTable mode_53_vtable = {
     .get_mode_number = get_mode_number,
     .get_emg_config = get_emg_config,
-    .execute = execute,
-    .execute_not_connected = execute_not_connected,
+    .execute_mode = execute_mode,
+    .execute_mode_not_connected = execute_mode_not_connected,
+    .stop = NULL,
     .destroy = NULL
 };
 
-ErrorCode mode_53_raw_create(Mode53Raw** mode, SerialInterface* interface) {
-    if (!mode || !interface) {
+ErrorCode mode_53_raw_create(Mode53Raw** mode, SerialInterface* interface, ProcessManager* process_manager) {
+    if (!mode || !interface || !process_manager) {
         log_error("Invalid parameters in mode_53_raw_create");
         return ERROR_INVALID_PARAMETER;
     }
@@ -126,14 +94,14 @@ ErrorCode mode_53_raw_create(Mode53Raw** mode, SerialInterface* interface) {
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    ErrorCode error = mode_init(&new_mode->base, interface, &mode_53_vtable, new_mode);
+    ErrorCode error = mode_base_create(&new_mode->base, interface, process_manager,
+                                     &mode_53_vtable, new_mode);
     if (error != ERROR_NONE) {
         free(new_mode);
         return error;
     }
 
     new_mode->is_first_run = true;
-    new_mode->filter_type = NOTCH_FILTER_NONE;
 
     *mode = new_mode;
     log_debug("Mode 53 Raw created successfully");
@@ -142,17 +110,8 @@ ErrorCode mode_53_raw_create(Mode53Raw** mode, SerialInterface* interface) {
 
 void mode_53_raw_destroy(Mode53Raw* mode) {
     if (mode) {
-        log_debug("Destroying Mode 53 Raw");
+        mode_base_destroy(&mode->base);
         free(mode);
+        log_debug("Mode 53 Raw destroyed");
     }
-}
-
-ErrorCode mode_53_raw_notch_create(Mode53Raw** mode, SerialInterface* interface, NotchFilterType filter_type) {
-    ErrorCode error = mode_53_raw_create(mode, interface);
-    if (error != ERROR_NONE) {
-        return error;
-    }
-
-    (*mode)->filter_type = filter_type;
-    return ERROR_NONE;
 }

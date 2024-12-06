@@ -1,57 +1,22 @@
 #include <stdlib.h>
 #include <string.h>
-#include "mode_0.h"
-#include "logger.h"
+#include <stdio.h>
 #include <math.h>
 #include <time.h>
+#include "mode_0.h"
+#include "logger.h"
 
-// VTable implementations
-static int get_mode_number(const Mode* mode) {
-    (void)mode;  // Unused parameter
+static int get_mode_number(const ModeBase* mode) {
+    (void)mode;
     return 44;
 }
 
-static const uint8_t* get_emg_config(const Mode* mode, size_t* length) {
+static const uint8_t* get_emg_config(const ModeBase* mode, size_t* length) {
     static const uint8_t config[] = {'r'};
     *length = sizeof(config);
     return config;
 }
 
-static const ModeVTable mode_0_vtable = {
-    .get_mode_number = get_mode_number,
-    .get_emg_config = get_emg_config
-};
-
-/* NO NEED FOR specific __validate_values() function in C implementation:
- *
- * Validates CMS channel synchronization by checking the high nibble pattern.
- * 
- * This function implements the same validation logic as Python's __validate_values:
- *   @staticmethod
- *   def __validate_values(values):
- *       for iteration, index in enumerate(range(0, 8, 2)):
- *           if iteration != values[index] >> 4:
- *               return False
- *       return True
- * 
- * The validation ensures that:
- * - Position 0: high nibble = 0  (0000 xxxx)
- * - Position 2: high nibble = 1  (0001 xxxx)
- * - Position 4: high nibble = 2  (0010 xxxx)
- * - Position 6: high nibble = 3  (0011 xxxx)
- * 
- * This pattern validation is used by Mode0 through resync_bytes():
- *   resync_bytes(data, length, MODE_0_BLOCK_SIZE, sync_cms_channels, NULL, 0, 0, &result)
- * 
- * By using sync_cms_channels as the validation function in resync_bytes, we achieve
- * the same functionality as Python's __validate_values without needing a separate
- * implementation in mode_0.c
- */
-
-
-
-
-// Helper functions
 static uint16_t scale_low_value(uint8_t n_low, uint8_t n_high) {
     return ((n_low & 15) << 8) | n_high;
 }
@@ -68,13 +33,11 @@ static double calculate_variance(const uint8_t* values, size_t length) {
     
     double sum = 0.0, mean, variance = 0.0;
     
-    // Calculate mean
     for (size_t i = 0; i < length; i++) {
         sum += values[i];
     }
     mean = sum / length;
     
-    // Calculate variance
     for (size_t i = 0; i < length; i++) {
         variance += pow(values[i] - mean, 2);
     }
@@ -82,35 +45,85 @@ static double calculate_variance(const uint8_t* values, size_t length) {
     return variance / length;
 }
 
-ErrorCode mode_0_create(Mode0** mode, SerialInterface* interface) {
-    if (!mode || !interface) {
-        log_error("Invalid parameters in mode_0_create");
-        return ERROR_INVALID_PARAMETER;
-    }
-
-    Mode0* new_mode = (Mode0*)malloc(sizeof(Mode0));
-    if (!new_mode) {
-        log_error("Failed to allocate Mode0");
-        return ERROR_MEMORY_ALLOCATION;
-    }
-
-    ErrorCode error = mode_init(&new_mode->base, interface, &mode_0_vtable, new_mode);
+static ErrorCode mode_0_execute(ModeBase* mode, uint8_t* output, size_t* output_length) {
+    Mode0* impl = (Mode0*)mode->impl;
+    uint8_t read_buffer[160];
+    size_t bytes_read;
+    
+    ErrorCode error = serial_interface_read_data(mode->interface, read_buffer, &bytes_read, MODE_0_READ_SIZE);
     if (error != ERROR_NONE) {
-        free(new_mode);
         return error;
     }
 
-    // Initialize Mode0 specific members
-    for (int i = 0; i < MODE_0_CHANNEL_COUNT; i++) {
-        new_mode->align_values[i] = MODE_0_DEFAULT_ALIGN_VALUE;
-        new_mode->offset_values[i] = 0;
-        new_mode->prev_data_array[i] = 0;
+    SyncResult sync_result;
+    error = resync_bytes(read_buffer, bytes_read, MODE_0_BLOCK_SIZE, sync_cms_channels, NULL, 0, 0, &sync_result);
+    if (!sync_result.found_sync) {
+        sync_result_free(&sync_result);
+        return ERROR_SYNC_FAILED;
     }
-    new_mode->has_prev_data = false;
-    new_mode->is_first_run = true;
 
-    *mode = new_mode;
-    log_debug("Mode 0 created successfully");
+    int16_t data_array[MODE_0_CHANNEL_COUNT];
+    error = mode_0_process_values(impl, sync_result.synced_data, data_array);
+    if (error != ERROR_NONE) {
+        sync_result_free(&sync_result);
+        return error;
+    }
+
+    memcpy(output, data_array, sizeof(data_array));
+    *output_length = sizeof(data_array);
+
+    sync_result_free(&sync_result);
+    return ERROR_NONE;
+}
+
+static ErrorCode mode_0_execute_not_connected(ModeBase* mode, uint8_t* output, size_t* output_length) {
+    uint8_t in_values[] = {0, 0, 1 << 4, 0, 2 << 4, 0, 3 << 4, 0};
+    for (int i = 0; i < 400; i++) {
+        memcpy(output + i * sizeof(in_values), in_values, sizeof(in_values));
+    }
+    *output_length = 400 * sizeof(in_values);
+    return ERROR_NONE;
+}
+
+static void mode_0_stop(ModeBase* mode) {
+    (void)mode;
+}
+
+static void mode_0_destroy_impl(ModeBase* mode) {
+    if (mode && mode->impl) {
+        free(mode->impl);
+        mode->impl = NULL;
+    }
+}
+
+static const ModeBaseVTable mode_0_vtable = {
+    .get_mode_number = get_mode_number,
+    .get_emg_config = get_emg_config,
+    .execute_mode = mode_0_execute,
+    .execute_mode_not_connected = mode_0_execute_not_connected,
+    .stop = mode_0_stop,
+    .destroy = mode_0_destroy_impl
+};
+
+ErrorCode mode_0_create(ModeBase** mode, SerialInterface* interface, ProcessManager* process_manager) {
+    Mode0* impl = (Mode0*)malloc(sizeof(Mode0));
+    if (!impl) {
+        log_error("Failed to allocate Mode0");
+        return ERROR_MEMORY_ALLOCATION;
+    }
+    
+    memset(impl->align_values, MODE_0_DEFAULT_ALIGN_VALUE, sizeof(impl->align_values));
+    memset(impl->offset_values, 0, sizeof(impl->offset_values));
+    memset(impl->prev_data_array, 0, sizeof(impl->prev_data_array));
+    impl->has_prev_data = false;
+    impl->is_first_run = true;
+    
+    ErrorCode error = mode_base_create(mode, interface, process_manager, &mode_0_vtable, impl);
+    if (error != ERROR_NONE) {
+        free(impl);
+        return error;
+    }
+    
     return ERROR_NONE;
 }
 
@@ -134,7 +147,6 @@ ErrorCode mode_0_process_values(Mode0* mode, const uint8_t* values, int16_t* dat
         
         int16_t computed_value = scaled_value - mode->align_values[i] - mode->offset_values[i];
 
-        // Special handling for lateral channel
         if (i == MODE_0_LATERAL_CHANNEL_INDEX) {
             int32_t reduction_factor = 
                 abs(MODE_0_DEFAULT_ALIGN_VALUE - mode->align_values[0] - data_array[0] - mode->offset_values[0]) +
@@ -148,156 +160,7 @@ ErrorCode mode_0_process_values(Mode0* mode, const uint8_t* values, int16_t* dat
     return ERROR_NONE;
 }
 
-
-
-/*
- * Generic byte synchronization function that matches and extends the Python implementation.
- * 
- * This function implements the same core logic as Python's _re_sync_bytes method from mode_0.py:
- * - Searches for valid sync patterns in the data stream
- * - Collects blocks of synchronized data
- * - Stops when sync is lost after finding first valid block
- * 
- * While the Python implementation is specific to CMS channels:
- *   @classmethod
- *   def _re_sync_bytes(cls, values_bucket: List):
- *       i = 0
- *       final_values = []
- *       found_first_set = False
- *       while i < len(values_bucket) and len(values_bucket[i:]) >= 8:
- *           cms_is_valid = re_sync_values_cms_channels(values_bucket[i:i + 8])
- *           if cms_is_valid:
- *               final_values.extend(values_bucket[i:i + 8])
- *               found_first_set = True
- *               i += 8
- *           elif found_first_set:
- *               break
- *           else:
- *               i += 1
- * 
- * This C implementation is more generic and flexible:
- * - Supports two sync functions (with sync_func2 being optional)
- * - Configurable sync offsets
- * - Adjustable block sizes
- * 
- * When used for Mode 0 (CMS channels), it's called with:
- *   resync_bytes(data, length, MODE_0_BLOCK_SIZE, sync_cms_channels, NULL, 0, 0, &result)
- * Which effectively matches the Python implementation's behavior.
- * 
- * Parameters:
- *   data          - Input byte array to synchronize
- *   length        - Length of input data
- *   block_size    - Size of each synchronized block
- *   sync_func1    - Primary sync validation function
- *   sync_func2    - Secondary sync validation function (optional, NULL if not used)
- *   sync1_offset  - Offset for first sync function
- *   sync2_offset  - Offset for second sync function
- *   result        - Output structure containing synchronized data
- * 
- * Returns:
- *   ErrorCode indicating success or specific failure condition
- */
-
-
-
-
-ErrorCode mode_0_execute(Mode0* mode, uint8_t* output, size_t* output_length) {
-    if (!mode || !output || !output_length) {
-        log_error("Invalid parameters in mode_0_execute");
-        return ERROR_INVALID_PARAMETER;
-    }
-
-    uint8_t read_buffer[MODE_0_READ_SIZE];
-    size_t bytes_read;
-    
-    ErrorCode error = serial_interface_read(mode->base.interface, read_buffer, MODE_0_READ_SIZE, &bytes_read);
-    if (error != ERROR_NONE) {
-        return error;
-    }
-
-    SyncResult sync_result;
-    error = resync_bytes(read_buffer, bytes_read, MODE_0_BLOCK_SIZE, 
-                        sync_cms_channels, NULL, 0, 0, &sync_result);
-    
-    if (!sync_result.found_sync) {
-        log_error("Failed to sync bytes in Mode 0");
-        sync_result_free(&sync_result);
-        return ERROR_SYNC_FAILED;
-    }
-
-    size_t output_index = 0;
-    const uint8_t* values = sync_result.synced_data;
-    size_t remaining = sync_result.synced_length;
-
-    while (remaining >= MODE_0_BLOCK_SIZE) {
-        int16_t data_array[MODE_0_CHANNEL_COUNT];
-        error = mode_0_process_values(mode, values, data_array);
-        
-        if (error != ERROR_NONE) {
-            sync_result_free(&sync_result);
-            return error;
-        }
-
-        // Check for significant changes if we have previous data
-        bool should_append = true;
-        if (mode->has_prev_data) {
-            should_append = false;
-            for (int i = 0; i < MODE_0_CHANNEL_COUNT; i++) {
-                if (abs(data_array[i] - mode->prev_data_array[i]) > 2) {
-                    should_append = true;
-                    break;
-                }
-            }
-        }
-
-        if (should_append) {
-            memcpy(mode->prev_data_array, data_array, sizeof(data_array));
-            mode->has_prev_data = true;
-            
-            // Pack data into output buffer
-            memcpy(output + output_index, data_array, sizeof(data_array));
-            output_index += sizeof(data_array);
-        }
-
-        values += MODE_0_BLOCK_SIZE;
-        remaining -= MODE_0_BLOCK_SIZE;
-    }
-
-    sync_result_free(&sync_result);
-    *output_length = output_index;
-
-    // Flush any remaining data
-    serial_interface_flush(mode->base.interface);
-    
-    return ERROR_NONE;
-}
-
-ErrorCode mode_0_execute_not_connected(Mode0* mode, uint8_t* output, size_t* output_length) {
-    if (!mode || !output || !output_length) {
-        log_error("Invalid parameters in mode_0_execute_not_connected");
-        return ERROR_INVALID_PARAMETER;
-    }
-
-    // Generate dummy data pattern
-    uint8_t pattern[8] = {
-        0x00, 0x00,             // Channel 0
-        0x10, 0x00,             // Channel 1
-        0x20, 0x00,             // Channel 2
-        0x30, 0x00              // Channel 3
-    };
-
-    size_t output_index = 0;
-    for (int i = 0; i < 400 && output_index < *output_length; i++) {
-        memcpy(output + output_index, pattern, sizeof(pattern));
-        output_index += sizeof(pattern);
-    }
-
-    *output_length = output_index;
-    return ERROR_NONE;
-}
-
-// Raw Mode Implementation
-ErrorCode mode_0_raw_create(Mode0Raw** mode, SerialInterface* interface) {
+ErrorCode mode_0_raw_create(Mode0Raw** mode, SerialInterface* interface, ProcessManager* process_manager) {
     if (!mode || !interface) {
         log_error("Invalid parameters in mode_0_raw_create");
         return ERROR_INVALID_PARAMETER;
@@ -309,7 +172,7 @@ ErrorCode mode_0_raw_create(Mode0Raw** mode, SerialInterface* interface) {
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    ErrorCode error = mode_0_create(&new_mode->base, interface);
+    ErrorCode error = mode_0_create(&new_mode->base, interface, process_manager);
     if (error != ERROR_NONE) {
         free(new_mode);
         return error;
@@ -333,21 +196,18 @@ static bool wait_for_init(const uint8_t* data, size_t length) {
     if (length < MODE_0_BLOCK_SIZE) return false;
 
     SyncResult sync_result;
-    ErrorCode error = resync_bytes(data, length, MODE_0_BLOCK_SIZE,
-                                 sync_cms_channels, NULL, 0, 0, &sync_result);
+    ErrorCode error = resync_bytes(data, length, MODE_0_BLOCK_SIZE, sync_cms_channels, NULL, 0, 0, &sync_result);
     
     if (!sync_result.found_sync) {
         sync_result_free(&sync_result);
         return false;
     }
 
-    // Calculate variance for each position in the block
     double max_variance = 0.0;
     for (size_t pos = 0; pos < MODE_0_BLOCK_SIZE; pos++) {
-        uint8_t values[20];  // Store values for variance calculation
+        uint8_t values[20];
         size_t value_count = 0;
         
-        // Collect values at the same position from different blocks
         for (size_t i = pos; i < sync_result.synced_length; i += MODE_0_BLOCK_SIZE) {
             if (value_count < 20) {
                 values[value_count++] = sync_result.synced_data[i];
@@ -373,7 +233,6 @@ ErrorCode mode_0_raw_execute(Mode0Raw* mode, uint8_t* output, size_t* output_len
     uint8_t read_buffer[1600];
     size_t bytes_read;
 
-    // Handle first run initialization
     if (mode->is_first_run) {
         int ignore_count = 0;
         size_t bytes_thrown = 0;
@@ -381,8 +240,7 @@ ErrorCode mode_0_raw_execute(Mode0Raw* mode, uint8_t* output, size_t* output_len
         while (bytes_thrown < 32000) {
             sleep_ms(10);
             
-            ErrorCode error = serial_interface_read(mode->base.base.interface, 
-                                                  read_buffer, 1600, &bytes_read);
+            ErrorCode error = serial_interface_read(mode->base.base.interface, read_buffer, 1600, &bytes_read);
             if (error != ERROR_NONE) continue;
 
             bytes_thrown += bytes_read;
@@ -397,29 +255,23 @@ ErrorCode mode_0_raw_execute(Mode0Raw* mode, uint8_t* output, size_t* output_len
         mode->is_first_run = false;
     }
 
-    // Read and process data
-    ErrorCode error = serial_interface_read(mode->base.base.interface, 
-                                          read_buffer, 1600, &bytes_read);
+    ErrorCode error = serial_interface_read(mode->base.base.interface, read_buffer, 1600, &bytes_read);
     if (error != ERROR_NONE) {
         return error;
     }
 
     SyncResult sync_result;
-    error = resync_bytes(read_buffer, bytes_read, MODE_0_BLOCK_SIZE,
-                        sync_cms_channels, NULL, 0, 0, &sync_result);
+    error = resync_bytes(read_buffer, bytes_read, MODE_0_BLOCK_SIZE, sync_cms_channels, NULL, 0, 0, &sync_result);
 
     if (!sync_result.found_sync || sync_result.synced_length < 160) {
-        // Try reading more data if we didn't get enough
-        error = serial_interface_read(mode->base.base.interface, 
-                                    read_buffer, 320, &bytes_read);
+        error = serial_interface_read(mode->base.base.interface, read_buffer, 320, &bytes_read);
         if (error != ERROR_NONE) {
             sync_result_free(&sync_result);
             return error;
         }
 
         sync_result_free(&sync_result);
-        error = resync_bytes(read_buffer, bytes_read, MODE_0_BLOCK_SIZE,
-                           sync_cms_channels, NULL, 0, 0, &sync_result);
+        error = resync_bytes(read_buffer, bytes_read, MODE_0_BLOCK_SIZE, sync_cms_channels, NULL, 0, 0, &sync_result);
     }
 
     if (!sync_result.found_sync) {
@@ -428,7 +280,6 @@ ErrorCode mode_0_raw_execute(Mode0Raw* mode, uint8_t* output, size_t* output_len
         return ERROR_SYNC_FAILED;
     }
 
-    // Copy synced data to output
     size_t copy_size = sync_result.synced_length;
     if (copy_size > *output_length) {
         copy_size = *output_length;
@@ -439,4 +290,77 @@ ErrorCode mode_0_raw_execute(Mode0Raw* mode, uint8_t* output, size_t* output_len
 
     sync_result_free(&sync_result);
     return ERROR_NONE;
+}
+
+// Add to existing mode_0.c mode_0_align functions
+static ErrorCode mode_0_align_process_values(Mode0Align* mode, const uint8_t* values, int16_t* data_array) {
+    // First get the normal processed values
+    ErrorCode error = mode_0_process_values(&mode->base, values, data_array);
+    if (error != ERROR_NONE) {
+        return error;
+    }
+
+    // Calculate and store new alignment values
+    for (int i = 0; i < MODE_0_CHANNEL_COUNT; i++) {
+        mode->current_aligned_values[i] = data_array[i] + MODE_0_DEFAULT_ALIGN_VALUE;
+    }
+    mode->has_aligned_values = true;
+
+    return ERROR_NONE;
+}
+
+static ErrorCode mode_0_align_execute(ModeBase* mode, uint8_t* output, size_t* output_length) {
+    Mode0Align* impl = (Mode0Align*)mode->impl;
+    ErrorCode error = mode_0_execute(mode, output, output_length);
+    
+    // The base execute function has already processed and stored the output
+    // We just need to ensure our alignment values are calculated
+    if (error == ERROR_NONE && impl->has_aligned_values) {
+        // Update the global alignment values
+        memcpy(START_ALIGN_VALUES, impl->current_aligned_values, 
+               sizeof(int16_t) * MODE_0_CHANNEL_COUNT);
+    }
+    
+    return error;
+}
+
+static const ModeBaseVTable mode_0_align_vtable = {
+    .get_mode_number = get_mode_number,
+    .get_emg_config = get_emg_config,
+    .execute_mode = mode_0_align_execute,
+    .execute_mode_not_connected = mode_0_execute_not_connected,
+    .stop = mode_0_stop,
+    .destroy = mode_0_align_destroy_impl
+};
+
+ErrorCode mode_0_align_create(Mode0Align** mode, SerialInterface* interface, ProcessManager* process_manager) {
+    Mode0Align* new_mode = (Mode0Align*)malloc(sizeof(Mode0Align));
+    if (!new_mode) {
+        log_error("Failed to allocate Mode0Align");
+        return ERROR_MEMORY_ALLOCATION;
+    }
+
+    ErrorCode error = mode_0_create(&new_mode->base, interface, process_manager);
+    if (error != ERROR_NONE) {
+        free(new_mode);
+        return error;
+    }
+
+    new_mode->has_aligned_values = false;
+    memset(new_mode->current_aligned_values, 0, sizeof(new_mode->current_aligned_values));
+
+    *mode = new_mode;
+    return ERROR_NONE;
+}
+
+void mode_0_align_destroy(Mode0Align* mode) {
+    if (mode) {
+        // If we have new alignment values, apply them before destroying
+        if (mode->has_aligned_values) {
+            memcpy(START_ALIGN_VALUES, mode->current_aligned_values, 
+                   sizeof(int16_t) * MODE_0_CHANNEL_COUNT);
+        }
+        mode_0_destroy(&mode->base);
+        free(mode);
+    }
 }

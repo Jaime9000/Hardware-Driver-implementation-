@@ -1,7 +1,7 @@
 #ifndef MODE_53_H
 #define MODE_53_H
 
-#include "mode.h"
+#include "mode_base.h"
 #include "serial_interface.h"
 #include "error_codes.h"
 #include "byte_sync.h"
@@ -14,16 +14,12 @@
 #define MODE_53_MAX_COLLECT 1600
 
 typedef struct {
-    Mode base;
+    ModeBase base;
     bool is_first_run;
-    NotchFilterType filter_type;
 } Mode53Raw;
 
 // Constructor/Destructor
-ErrorCode mode_53_raw_create(Mode53Raw** mode, SerialInterface* interface);
+ErrorCode mode_53_raw_create(Mode53Raw** mode, SerialInterface* interface, ProcessManager* process_manager);
 void mode_53_raw_destroy(Mode53Raw* mode);
-
-// Notch filter variant
-ErrorCode mode_53_raw_notch_create(Mode53Raw** mode, SerialInterface* interface, NotchFilterType filter_type);
 
 #endif // MODE_53_H

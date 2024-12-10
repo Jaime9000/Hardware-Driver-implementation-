@@ -2,7 +2,22 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+static ErrorCode ensure_directory_exists(void) {
+    #ifdef _WIN32
+    if (CreateDirectoryA("C:\\K7", NULL) == 0) {
+        DWORD error = GetLastError();
+        if (error != ERROR_ALREADY_EXISTS) {
+            return ERROR_FILE_OPERATION;
+        }
+    }
+    #endif
+    return ERROR_NONE;
+}
+
 static ErrorCode write_config(const char* value) {
+    ErrorCode err = ensure_directory_exists();
+    if (err != ERROR_NONE) return err;
+
     FILE* fp = fopen(SUPPLEMENTAL_WINDOW_DISPLAY_SETTING_PATH, "w");
     if (!fp) return ERROR_FILE_OPERATION;
     

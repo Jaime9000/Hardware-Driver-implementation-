@@ -6,6 +6,8 @@
 #include <plplot/plplot.h>
 #include "data_table.h"
 #include "error_codes.h"
+#include "ui_classes/scrollable_frame.h"
+#include "create_ui.h"
 
 #define WINDOW_NAME "Graph Plot"
 #define FONT_SIZE 6
@@ -17,6 +19,15 @@ typedef struct {
     int count;
 } PlotData;
 
+typedef struct {
+    char** dates;
+    int* a_flex_values;
+    int* p_ext_values;
+    int* r_flex_values;
+    int* l_flex_values;
+    size_t count;
+} TableData;
+
 typedef struct GraphPlotWindow GraphPlotWindow;
 
 // Constructor/Destructor
@@ -27,7 +38,7 @@ GraphPlotWindow* graph_plot_window_create(Tcl_Interp* interp,
 void graph_plot_window_destroy(GraphPlotWindow* window);
 
 // Window operations
-ErrorCode graph_plot_window_setup(GraphPlotWindow* window);
+ErrorCode graph_plot_window_setup_toolbar(GraphPlotWindow* window);
 ErrorCode graph_plot_window_print(GraphPlotWindow* window);
 ErrorCode graph_plot_window_populate_data(GraphPlotWindow* window);
 

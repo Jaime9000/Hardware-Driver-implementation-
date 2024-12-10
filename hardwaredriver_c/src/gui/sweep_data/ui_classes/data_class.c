@@ -4,6 +4,59 @@
 #include <math.h>
 #include "logger.h"
 #include "../utils.h"
+#include <stdio.h>
+#include "cJSON.h"
+#include <windows.h>
+
+#define DEFAULT_PLAYBACK_SPEED 2.0
+#define DEFAULT_CONFIG_PATH "C:\\K7\\playback_speeds"
+
+// Add string arrays for enums
+const char* RECORDING_MODE_STRINGS[] = {
+    "A/P Pitch",
+    "Lat Roll",
+    "Other",
+    "CMS_SCAN"
+};
+
+const char* RECORDING_STATE_STRINGS[] = {
+    "Recording",
+    "Recording Complete",
+    "",  // NOT_RECORDING
+    "Playing",
+    "Playback Complete",
+    "Playback Paused",
+    "Error: Not recording data yet"
+};
+
+// Implement calculate_min_max_values as a public function
+ErrorCode calculate_min_max_values(const double* values, 
+                                 size_t count, 
+                                 MinMaxValues* result) {
+    if (!values || !result || count == 0) return ERROR_INVALID_PARAMETER;
+    
+    double max_value = values[0];
+    double min_value = values[0];
+    
+    for (size_t i = 1; i < count; i++) {
+        if (values[i] > max_value) max_value = values[i];
+        if (values[i] < min_value) min_value = values[i];
+    }
+    
+    if ((max_value > 0 && min_value > 0) || (max_value < 0 && min_value < 0)) {
+        if (max_value > 0) {
+            max_value = max_value - min_value;
+            min_value = 0;
+        } else {
+            min_value = min_value - max_value;
+            max_value = 0;
+        }
+    }
+    
+    result->max_value = max_value;
+    result->min_value = min_value;
+    return ERROR_NONE;
+}
 
 struct DataClass {
     Tcl_Interp* interp;
@@ -23,13 +76,13 @@ struct DataClass {
     RecordingState state;
     bool recording_on;
     bool recording_paused;
-    time_t recording_start_time;
+    SYSTEMTIME recording_start_time;
     char* recording_scan_type;
     
     // Playback state
     bool playback_on;
     SavedData* playback_data;
-    time_t playback_last_run_time;
+    SYSTEMTIME playback_last_run_time;
     double playback_speed;
     bool fast_replay;
     
@@ -38,8 +91,9 @@ struct DataClass {
     char* status_label_path;
     char* play_button_path;
     char* pause_button_path;
-    char* record_button_path;
-    char* save_button_path;
+    char* start_record_button_path;
+    char* stop_record_button_path;
+    char* save_record_button_path;
 };
 
 static void init_data_points(DataPoints* points) {
@@ -74,8 +128,143 @@ static ErrorCode ensure_capacity(DataPoints* points, size_t needed) {
     return ERROR_NONE;
 }
 
+static ErrorCode sanitize_points(const DataPoints* input, DataPoints* output) {
+    if (!input || !output) return ERROR_INVALID_PARAMETER;
+    
+    output->count = 0;
+    if (input->count == 0) return ERROR_NONE;
+    
+    ErrorCode error = ensure_capacity(output, input->count);
+    if (error != ERROR_NONE) return error;
+    
+    for (size_t i = 0; i < input->count; i++) {
+        if (!isnan(input->values[i])) {
+            output->values[output->count] = input->values[i];
+            output->timestamps[output->count] = input->timestamps[i];
+            output->count++;
+        }
+    }
+    
+    return ERROR_NONE;
+}
+
+static ErrorCode compute_rolling_average(DataClass* data, size_t points_count) {
+    if (!data || points_count == 0) return ERROR_INVALID_PARAMETER;
+    
+    // Initialize temporary storage
+    DataPoints temp_frontal = {0};
+    DataPoints temp_sagittal = {0};
+    init_data_points(&temp_frontal);
+    init_data_points(&temp_sagittal);
+    
+    // Allocate space for averaged points
+    ErrorCode error = ensure_capacity(&temp_frontal, points_count);
+    if (error != ERROR_NONE) return error;
+    
+    error = ensure_capacity(&temp_sagittal, points_count);
+    if (error != ERROR_NONE) {
+        free_data_points(&temp_frontal);
+        return error;
+    }
+    
+    // Get current time relative to recording start
+    SYSTEMTIME current_time;
+    GetLocalTime(&current_time);
+    double current_seconds = get_time_difference_seconds(&data->recording_start_time, 
+                                                       &current_time);
+    
+    const double INTERVAL = 0.1;  // 0.1 second intervals
+    
+    // Calculate averages for each interval
+    for (size_t i = 0; i < points_count; i++) {
+        double interval_end = current_seconds - (i * INTERVAL);
+        double interval_start = interval_end - INTERVAL;
+        
+        double frontal_sum = 0.0;
+        double sagittal_sum = 0.0;
+        size_t frontal_count = 0;
+        size_t sagittal_count = 0;
+        
+        // Calculate frontal average
+        for (size_t j = data->frontal_points.count; j > 0; j--) {
+            double point_time = data->frontal_points.timestamps[j-1];
+            if (point_time <= interval_start) break;
+            if (point_time > interval_end) continue;
+            
+            frontal_sum += data->frontal_points.values[j-1];
+            frontal_count++;
+        }
+        
+        // Calculate sagittal average
+        for (size_t j = data->sagittal_points.count; j > 0; j--) {
+            double point_time = data->sagittal_points.timestamps[j-1];
+            if (point_time <= interval_start) break;
+            if (point_time > interval_end) continue;
+            
+            sagittal_sum += data->sagittal_points.values[j-1];
+            sagittal_count++;
+        }
+        
+        // Store results (newest points at end)
+        size_t idx = points_count - 1 - i;
+        temp_frontal.timestamps[idx] = interval_end;
+        temp_sagittal.timestamps[idx] = interval_end;
+        
+        // Store averages or use previous values
+        if (frontal_count > 0) {
+            temp_frontal.values[idx] = frontal_sum / frontal_count;
+        } else if (i > 0) {
+            temp_frontal.values[idx] = temp_frontal.values[idx + 1];
+        } else if (data->frontal_points.count > 0) {
+            temp_frontal.values[idx] = data->frontal_points.values[data->frontal_points.count - 1];
+        }
+        
+        if (sagittal_count > 0) {
+            temp_sagittal.values[idx] = sagittal_sum / sagittal_count;
+        } else if (i > 0) {
+            temp_sagittal.values[idx] = temp_sagittal.values[idx + 1];
+        } else if (data->sagittal_points.count > 0) {
+            temp_sagittal.values[idx] = data->sagittal_points.values[data->sagittal_points.count - 1];
+        }
+        
+        temp_frontal.count++;
+        temp_sagittal.count++;
+    }
+    
+    // Update main data structures
+    error = ensure_capacity(&data->frontal_points, points_count);
+    if (error != ERROR_NONE) {
+        free_data_points(&temp_frontal);
+        free_data_points(&temp_sagittal);
+        return error;
+    }
+    
+    error = ensure_capacity(&data->sagittal_points, points_count);
+    if (error != ERROR_NONE) {
+        free_data_points(&temp_frontal);
+        free_data_points(&temp_sagittal);
+        return error;
+    }
+    
+    // Copy averaged data
+    memcpy(data->frontal_points.values, temp_frontal.values, points_count * sizeof(double));
+    memcpy(data->frontal_points.timestamps, temp_frontal.timestamps, points_count * sizeof(double));
+    memcpy(data->sagittal_points.values, temp_sagittal.values, points_count * sizeof(double));
+    memcpy(data->sagittal_points.timestamps, temp_sagittal.timestamps, points_count * sizeof(double));
+    
+    data->frontal_points.count = points_count;
+    data->sagittal_points.count = points_count;
+    
+    // Cleanup
+    free_data_points(&temp_frontal);
+    free_data_points(&temp_sagittal);
+    
+    return ERROR_NONE;
+}
+
 static void setup_ui_paths(DataClass* data) {
     char path[256];
+    
     snprintf(path, sizeof(path), "%s.current_status", data->builder_path);
     data->status_label_path = strdup(path);
     
@@ -85,14 +274,19 @@ static void setup_ui_paths(DataClass* data) {
     snprintf(path, sizeof(path), "%s.pause_button", data->builder_path);
     data->pause_button_path = strdup(path);
     
-    snprintf(path, sizeof(path), "%s.record_button", data->builder_path);
-    data->record_button_path = strdup(path);
+    snprintf(path, sizeof(path), "%s.start_record_button", data->builder_path);
+    data->start_record_button_path = strdup(path);
     
-    snprintf(path, sizeof(path), "%s.save_button", data->builder_path);
-    data->save_button_path = strdup(path);
+    snprintf(path, sizeof(path), "%s.stop_record_button", data->builder_path);
+    data->stop_record_button_path = strdup(path);
+    
+    snprintf(path, sizeof(path), "%s.save_record_button", data->builder_path);
+    data->save_record_button_path = strdup(path);
 }
 
 static void update_recording_label(DataClass* data) {
+    if (!data) return;
+    
     char cmd[256];
     const char* state_text;
     
@@ -129,98 +323,10 @@ static void update_recording_label(DataClass* data) {
     Tcl_Eval(data->interp, cmd);
 }
 
-static void set_button_states(DataClass* data, 
-                            bool start_enabled,
-                            bool stop_enabled,
-                            bool save_enabled) {
-    char cmd[256];
-    
-    snprintf(cmd, sizeof(cmd), "%s configure -state %s",
-             data->record_button_path, start_enabled ? "normal" : "disabled");
-    Tcl_Eval(data->interp, cmd);
-    
-    snprintf(cmd, sizeof(cmd), "%s configure -state %s",
-             data->pause_button_path, stop_enabled ? "normal" : "disabled");
-    Tcl_Eval(data->interp, cmd);
-    
-    snprintf(cmd, sizeof(cmd), "%s configure -state %s",
-             data->save_button_path, save_enabled ? "normal" : "disabled");
-    Tcl_Eval(data->interp, cmd);
-}
-
-static ErrorCode compute_rolling_average(const DataPoints* input,
-                                       size_t points_count,
-                                       DataPoints* output) {
-    if (!input || !output || input->count == 0) 
-        return ERROR_INVALID_PARAMETER;
-        
-    double window_size = 0.1; // 0.1 second windows
-    double start_time = input->timestamps[0];
-    double end_time = input->timestamps[input->count-1];
-    size_t window_count = (size_t)ceil((end_time - start_time) / window_size);
-    
-    double* avg_values = calloc(window_count, sizeof(double));
-    double* avg_times = calloc(window_count, sizeof(double));
-    double* window_sums = calloc(window_count, sizeof(double));
-    size_t* window_counts = calloc(window_count, sizeof(size_t));
-    
-    if (!avg_values || !avg_times || !window_sums || !window_counts) {
-        free(avg_values);
-        free(avg_times);
-        free(window_sums);
-        free(window_counts);
-        return ERROR_OUT_OF_MEMORY;
-    }
-    
-    for (size_t i = 0; i < window_count; i++) {
-        avg_times[i] = start_time + (i * window_size) + (window_size / 2);
-    }
-    
-    for (size_t i = 0; i < input->count; i++) {
-        double time = input->timestamps[i];
-        size_t window_idx = (size_t)((time - start_time) / window_size);
-        if (window_idx < window_count) {
-            window_sums[window_idx] += input->values[i];
-            window_counts[window_idx]++;
-        }
-    }
-    
-    size_t valid_windows = 0;
-    for (size_t i = 0; i < window_count; i++) {
-        if (window_counts[i] > 0) {
-            avg_values[valid_windows] = window_sums[i] / window_counts[i];
-            avg_times[valid_windows] = avg_times[i];
-            valid_windows++;
-        }
-    }
-    
-    ErrorCode err = ensure_capacity(output, valid_windows);
-    if (err != ERROR_NONE) {
-        free(avg_values);
-        free(avg_times);
-        free(window_sums);
-        free(window_counts);
-        return err;
-    }
-    
-    memcpy(output->values, avg_values, valid_windows * sizeof(double));
-    memcpy(output->timestamps, avg_times, valid_windows * sizeof(double));
-    output->count = valid_windows;
-    
-    free(avg_values);
-    free(avg_times);
-    free(window_sums);
-    free(window_counts);
-    
-    return ERROR_NONE;
-}
-
 DataClass* data_class_create(Tcl_Interp* interp, 
                            const char* builder_path,
                            const char* namespace_path,
                            DataQueue* data_queue) {
-    if (!interp || !builder_path || !namespace_path || !data_queue) return NULL;
-    
     DataClass* data = calloc(1, sizeof(DataClass));
     if (!data) return NULL;
     
@@ -229,18 +335,31 @@ DataClass* data_class_create(Tcl_Interp* interp,
     data->namespace_path = strdup(namespace_path);
     data->data_queue = data_queue;
     
-    data->window_options = image_window_options_create();
+    // Initialize data points
+    init_data_points(&data->frontal_points);
+    init_data_points(&data->sagittal_points);
+    
+    // Initialize saved data array
+    data->saved_data_capacity = 10;
+    data->saved_data_points = malloc(sizeof(SavedData*) * data->saved_data_capacity);
+    if (!data->saved_data_points) {
+        data_class_destroy(data);
+        return NULL;
+    }
+    
+    // Initialize window options
+    data->window_options = calloc(1, sizeof(ImageWindowOptions));
     if (!data->window_options) {
         data_class_destroy(data);
         return NULL;
     }
     
+    // Setup UI paths and initial state
     setup_ui_paths(data);
-    init_data_points(&data->frontal_points);
-    init_data_points(&data->sagittal_points);
-    
     data->state = NOT_RECORDING;
     data->playback_speed = 1.0;
+    
+    update_recording_label(data);
     
     return data;
 }
@@ -248,13 +367,11 @@ DataClass* data_class_create(Tcl_Interp* interp,
 void data_class_destroy(DataClass* data) {
     if (!data) return;
     
-    free(data->builder_path);
-    free(data->namespace_path);
-    free(data->recording_scan_type);
-    
+    // Free data points
     free_data_points(&data->frontal_points);
     free_data_points(&data->sagittal_points);
     
+    // Free saved data
     if (data->saved_data) {
         free_data_points(&data->saved_data->frontal_points);
         free_data_points(&data->saved_data->sagittal_points);
@@ -262,18 +379,18 @@ void data_class_destroy(DataClass* data) {
         free(data->saved_data);
     }
     
-    if (data->saved_data_points) {
-        for (size_t i = 0; i < data->saved_data_count; i++) {
-            if (data->saved_data_points[i]) {
-                free_data_points(&data->saved_data_points[i]->frontal_points);
-                free_data_points(&data->saved_data_points[i]->sagittal_points);
-                free(data->saved_data_points[i]->scan_type);
-                free(data->saved_data_points[i]);
-            }
+    // Free saved data points array
+    for (size_t i = 0; i < data->saved_data_count; i++) {
+        if (data->saved_data_points[i]) {
+            free_data_points(&data->saved_data_points[i]->frontal_points);
+            free_data_points(&data->saved_data_points[i]->sagittal_points);
+            free(data->saved_data_points[i]->scan_type);
+            free(data->saved_data_points[i]);
         }
-        free(data->saved_data_points);
     }
+    free(data->saved_data_points);
     
+    // Free playback data
     if (data->playback_data) {
         free_data_points(&data->playback_data->frontal_points);
         free_data_points(&data->playback_data->sagittal_points);
@@ -281,33 +398,45 @@ void data_class_destroy(DataClass* data) {
         free(data->playback_data);
     }
     
-    image_window_options_destroy(data->window_options);
-    
+    // Free strings
+    free(data->builder_path);
+    free(data->namespace_path);
+    free(data->recording_scan_type);
     free(data->status_label_path);
     free(data->play_button_path);
     free(data->pause_button_path);
-    free(data->record_button_path);
-    free(data->save_button_path);
+    free(data->start_record_button_path);
+    free(data->stop_record_button_path);
+    free(data->save_record_button_path);
     
+    // Free window options
+    free(data->window_options);
+    
+    // Free the struct itself
     free(data);
 }
 
 ErrorCode data_class_start_recording(DataClass* data, const char* scan_type_label) {
     if (!data || !scan_type_label) return ERROR_INVALID_PARAMETER;
     
-    ErrorCode err = data_class_clear_all(data, !data->recording_paused);
-    if (err != ERROR_NONE) return err;
+    data_class_clear_all(data, !data->recording_paused);
     
+    data->recording_on = true;
+    data->recording_paused = false;
+    data->state = RECORDING_ON;
+    GetLocalTime(&data->recording_start_time);
+    
+    // Set scan type
     free(data->recording_scan_type);
     data->recording_scan_type = strdup(scan_type_label);
     
-    data->state = RECORDING_ON;
-    data->recording_on = true;
-    data->recording_paused = false;
-    time(&data->recording_start_time);
-    
+    // Update UI
     update_recording_label(data);
-    set_button_states(data, false, true, false);
+    
+    // Set button states
+    data_class_set_button_state(data, data->start_record_button_path, false);
+    data_class_set_button_state(data, data->stop_record_button_path, true);
+    data_class_set_button_state(data, data->save_record_button_path, false);
     
     return ERROR_NONE;
 }
@@ -315,33 +444,27 @@ ErrorCode data_class_start_recording(DataClass* data, const char* scan_type_labe
 ErrorCode data_class_stop_recording(DataClass* data) {
     if (!data) return ERROR_INVALID_PARAMETER;
     
-    data->state = RECORDING_COMPLETE;
-    data->recording_on = true;
-    data->recording_paused = true;
-    
-    update_recording_label(data);
-    set_button_states(data, true, false, true);
-    
-    // Save current data points as saved data
-    if (data->saved_data) {
-        free(data->saved_data);
+    if (!data->recording_on) {
+        data->state = ERROR_NOT_RECORDING;
+        update_recording_label(data);
+        return ERROR_INVALID_STATE;
     }
     
-    data->saved_data = calloc(1, sizeof(SavedData));
-    if (!data->saved_data) return ERROR_OUT_OF_MEMORY;
+    data->recording_on = false;
+    data->recording_paused = false;
+    data->state = RECORDING_COMPLETE;
     
-    data->saved_data->frontal_points = data->frontal_points;
-    data->saved_data->sagittal_points = data->sagittal_points;
-    data->saved_data->scan_type = strdup(data->recording_scan_type);
-    
-    init_data_points(&data->frontal_points);
-    init_data_points(&data->sagittal_points);
+    // Update UI
+    update_recording_label(data);
+    data_class_set_button_state(data, data->start_record_button_path, true);
+    data_class_set_button_state(data, data->stop_record_button_path, false);
+    data_class_set_button_state(data, data->save_record_button_path, true);
     
     return ERROR_NONE;
 }
 
 ErrorCode data_class_toggle_recording(DataClass* data, const char* scan_type_label) {
-    if (!data || !scan_type_label) return ERROR_INVALID_PARAMETER;
+    if (!data) return ERROR_INVALID_PARAMETER;
     
     if (data->recording_on && !data->recording_paused) {
         return data_class_stop_recording(data);
@@ -352,12 +475,18 @@ ErrorCode data_class_toggle_recording(DataClass* data, const char* scan_type_lab
 
 ErrorCode data_class_pause_data_capture(DataClass* data) {
     if (!data) return ERROR_INVALID_PARAMETER;
+    
+    if (!data->recording_on) return ERROR_INVALID_STATE;
+    
     data->recording_paused = true;
     return ERROR_NONE;
 }
 
 ErrorCode data_class_resume_data_capture(DataClass* data) {
     if (!data) return ERROR_INVALID_PARAMETER;
+    
+    if (!data->recording_on) return ERROR_INVALID_STATE;
+    
     data->recording_paused = false;
     return ERROR_NONE;
 }
@@ -370,13 +499,13 @@ ErrorCode data_class_clear_all(DataClass* data, bool clear_all) {
     
     if (clear_all) {
         data_class_reinitialize_y_points(data);
+        image_window_options_reset(data->window_options);
     }
-    
-    image_window_options_reset_min_max_values(data->window_options);
     
     data->state = NOT_RECORDING;
     update_recording_label(data);
     
+    // Clear playback data
     if (data->playback_data) {
         free_data_points(&data->playback_data->frontal_points);
         free_data_points(&data->playback_data->sagittal_points);
@@ -384,9 +513,9 @@ ErrorCode data_class_clear_all(DataClass* data, bool clear_all) {
         free(data->playback_data);
         data->playback_data = NULL;
     }
-    
     data->playback_last_run_time = 0;
     
+    // Clear saved data
     if (data->saved_data) {
         free_data_points(&data->saved_data->frontal_points);
         free_data_points(&data->saved_data->sagittal_points);
@@ -396,88 +525,20 @@ ErrorCode data_class_clear_all(DataClass* data, bool clear_all) {
     }
     
     // Clear queue
-    while (data_queue_size(data->data_queue) > 0) {
-        double data_point;
-        size_t count = 1;
-        data_queue_get(data->data_queue, &data_point, &count);
-    }
+    data_queue_clear(data->data_queue);
     
+    // Reset recording state
     data->recording_on = false;
     data->recording_start_time = 0;
     free(data->recording_scan_type);
     data->recording_scan_type = NULL;
     
-    set_button_states(data, true, false, false);
-    
-    return ERROR_NONE;
-}
-
-ErrorCode data_class_save_recording(DataClass* data, 
-                                  const char* patient_path, 
-                                  const char* extra_filter) {
-    if (!data || !patient_path) return ERROR_INVALID_PARAMETER;
-    
-    if (data->recording_on) {
-        if (!data->recording_paused) {
-            ErrorCode err = data_class_stop_recording(data);
-            if (err != ERROR_NONE) return err;
-        }
-    } else {
-        data->state = ERROR_NOT_RECORDING;
-        update_recording_label(data);
-        return ERROR_INVALID_STATE;
-    }
-    
-    char filename[256];
-    encode_curr_datetime(filename, sizeof(filename));
-    
-    char full_path[512];
-    snprintf(full_path, sizeof(full_path), "%s/%s.dat", patient_path, filename);
-    
-    FILE* file = fopen(full_path, "wb");
-    if (!file) return ERROR_FILE_OPERATION;
-    
-    // Write saved data
-    if (data->saved_data) {
-        fwrite(&data->saved_data->frontal_points.count, sizeof(size_t), 1, file);
-        fwrite(data->saved_data->frontal_points.values, 
-               sizeof(double), 
-               data->saved_data->frontal_points.count, 
-               file);
-        fwrite(data->saved_data->frontal_points.timestamps, 
-               sizeof(double), 
-               data->saved_data->frontal_points.count, 
-               file);
-               
-        fwrite(&data->saved_data->sagittal_points.count, sizeof(size_t), 1, file);
-        fwrite(data->saved_data->sagittal_points.values, 
-               sizeof(double), 
-               data->saved_data->sagittal_points.count, 
-               file);
-        fwrite(data->saved_data->sagittal_points.timestamps, 
-               sizeof(double), 
-               data->saved_data->sagittal_points.count, 
-               file);
-               
-        size_t scan_type_len = strlen(data->saved_data->scan_type);
-        fwrite(&scan_type_len, sizeof(size_t), 1, file);
-        fwrite(data->saved_data->scan_type, sizeof(char), scan_type_len, file);
-    }
-    
-    // Write extra filter if provided
-    if (extra_filter) {
-        size_t filter_len = strlen(extra_filter);
-        fwrite(&filter_len, sizeof(size_t), 1, file);
-        fwrite(extra_filter, sizeof(char), filter_len, file);
-    } else {
-        size_t filter_len = 0;
-        fwrite(&filter_len, sizeof(size_t), 1, file);
-    }
-    
-    fclose(file);
-    
-    data->recording_on = false;
-    data->recording_paused = false;
+    // Update UI buttons
+    data_class_set_button_state(data, data->play_button_path, false);
+    data_class_set_button_state(data, data->pause_button_path, false);
+    data_class_set_button_state(data, data->start_record_button_path, true);
+    data_class_set_button_state(data, data->stop_record_button_path, false);
+    data_class_set_button_state(data, data->save_record_button_path, false);
     
     return ERROR_NONE;
 }
@@ -487,171 +548,221 @@ ErrorCode data_class_append_data(DataClass* data,
                                size_t points_count) {
     if (!data || !y_points || points_count == 0) return ERROR_INVALID_PARAMETER;
     
-    // Ensure capacity for new points
-    ErrorCode err = ensure_capacity(&data->frontal_points, 
-                                  data->frontal_points.count + points_count);
-    if (err != ERROR_NONE) return err;
+    // Get time since recording started
+    SYSTEMTIME current_time;
+    GetLocalTime(&current_time);
+    double seconds_from_start = get_time_difference_seconds(&data->recording_start_time, 
+                                                          &current_time);
     
-    err = ensure_capacity(&data->sagittal_points, 
-                         data->sagittal_points.count + points_count);
-    if (err != ERROR_NONE) return err;
+    // Ensure we have space for new points
+    ErrorCode error = ensure_capacity(&data->frontal_points, 
+                                    data->frontal_points.count + points_count);
+    if (error != ERROR_NONE) return error;
     
-    // Get current time for timestamps
-    time_t now;
-    time(&now);
-    double timestamp = difftime(now, data->recording_start_time);
+    error = ensure_capacity(&data->sagittal_points, 
+                          data->sagittal_points.count + points_count);
+    if (error != ERROR_NONE) return error;
     
-    // Add new points
+    // Store the new points
     for (size_t i = 0; i < points_count; i++) {
-        size_t idx = data->frontal_points.count;
-        data->frontal_points.values[idx] = y_points[i * 2];
-        data->frontal_points.timestamps[idx] = timestamp;
-        data->sagittal_points.values[idx] = y_points[i * 2 + 1];
-        data->sagittal_points.timestamps[idx] = timestamp;
+        data->frontal_points.values[data->frontal_points.count] = y_points[i * 2];
+        data->frontal_points.timestamps[data->frontal_points.count] = seconds_from_start;
         data->frontal_points.count++;
+        
+        data->sagittal_points.values[data->sagittal_points.count] = y_points[i * 2 + 1];
+        data->sagittal_points.timestamps[data->sagittal_points.count] = seconds_from_start;
         data->sagittal_points.count++;
     }
     
+    return compute_rolling_average(data, points_count);
+}
+
+ErrorCode data_class_save_recording(DataClass* data, 
+                                  const char* patient_path, 
+                                  const char* extra_filter) {
+    if (!data || !patient_path) return ERROR_INVALID_PARAMETER;
+    
+    // Stop recording if needed
+    if (data->recording_on && !data->recording_paused) {
+        ErrorCode error = data_class_stop_recording(data);
+        if (error != ERROR_NONE) return error;
+    } else if (!data->recording_on) {
+        data->state = ERROR_NOT_RECORDING;
+        update_recording_label(data);
+        return ERROR_INVALID_STATE;
+    }
+
+    // Get encoded datetime for filename using utils.h function
+    char datetime_str[MAX_DATETIME_LENGTH];
+    ErrorCode error = encode_curr_datetime(datetime_str, sizeof(datetime_str));
+    if (error != ERROR_NONE) return error;
+
+    // Create full path
+    char full_path[MAX_PATH];
+    snprintf(full_path, sizeof(full_path), "%s\\%s", patient_path, datetime_str);
+
+    // Save the data
+    error = sweep_data_serialize(full_path, data->saved_data, extra_filter);
+    if (error != ERROR_NONE) return error;
+
+    data->recording_on = false;
+    data->recording_paused = false;
+
     return ERROR_NONE;
 }
 
 ErrorCode data_class_set_image_window_values(DataClass* data, 
                                            double frontal, 
                                            double sagittal) {
-    if (!data) return ERROR_INVALID_PARAMETER;
+    if (!data || !data->window_options) return ERROR_INVALID_PARAMETER;
     
-    image_window_options_set_current_values(data->window_options, frontal, sagittal);
+    data->window_options->current_frontal = frontal;
+    data->window_options->current_sagittal = sagittal;
+    
+    // Update min/max values
+    if (frontal > data->window_options->max_frontal) {
+        data->window_options->max_frontal = frontal;
+    }
+    if (frontal < data->window_options->min_frontal) {
+        data->window_options->min_frontal = frontal;
+    }
+    
+    if (sagittal > data->window_options->max_sagittal) {
+        data->window_options->max_sagittal = sagittal;
+    }
+    if (sagittal < data->window_options->min_sagittal) {
+        data->window_options->min_sagittal = sagittal;
+    }
+    
     return ERROR_NONE;
 }
 
 ErrorCode data_class_reinitialize_y_points(DataClass* data) {
     if (!data) return ERROR_INVALID_PARAMETER;
     
-    free_data_points(&data->frontal_points);
-    free_data_points(&data->sagittal_points);
-    init_data_points(&data->frontal_points);
-    init_data_points(&data->sagittal_points);
+    data->frontal_points.count = 0;
+    data->sagittal_points.count = 0;
     
     return ERROR_NONE;
 }
 
-ErrorCode data_class_start_playback(DataClass* data, const char* filename) {
+ErrorCode data_class_load_playback_speed(const char* config_path, double* speed) {
+    if (!speed) return ERROR_INVALID_PARAMETER;
+    
+    // Try to read the file
+    FILE* f = fopen(config_path, "r");
+    if (!f) {
+        // If file doesn't exist or can't be read, use default
+        *speed = DEFAULT_PLAYBACK_SPEED;
+        return data_class_save_playback_speed(config_path, *speed);
+    }
+    
+    // Get file size
+    fseek(f, 0, SEEK_END);
+    long fsize = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    
+    // Read file content
+    char* content = malloc(fsize + 1);
+    if (!content) {
+        fclose(f);
+        return ERROR_OUT_OF_MEMORY;
+    }
+    
+    fread(content, 1, fsize, f);
+    content[fsize] = 0;
+    fclose(f);
+    
+    // Parse JSON
+    cJSON* root = cJSON_Parse(content);
+    free(content);
+    
+    if (!root) {
+        // If parsing fails, use default
+        *speed = DEFAULT_PLAYBACK_SPEED;
+        return data_class_save_playback_speed(config_path, *speed);
+    }
+    
+    // Get speed value
+    if (!cJSON_IsNumber(root)) {
+        cJSON_Delete(root);
+        *speed = DEFAULT_PLAYBACK_SPEED;
+        return data_class_save_playback_speed(config_path, *speed);
+    }
+    
+    *speed = root->valuedouble;
+    cJSON_Delete(root);
+    
+    return ERROR_NONE;
+}
+
+ErrorCode data_class_save_playback_speed(const char* config_path, double speed) {
+    cJSON* root = cJSON_CreateNumber(speed);
+    if (!root) return ERROR_OUT_OF_MEMORY;
+    
+    char* json_str = cJSON_Print(root);
+    cJSON_Delete(root);
+    
+    if (!json_str) return ERROR_OUT_OF_MEMORY;
+    
+    FILE* f = fopen(config_path, "w");
+    if (!f) {
+        free(json_str);
+        return ERROR_FILE_OPERATION;
+    }
+    
+    fprintf(f, "%s", json_str);
+    free(json_str);
+    fclose(f);
+    
+    return ERROR_NONE;
+}
+
+ErrorCode data_class_start_playback(DataClass* data, 
+                                  const char* filename, 
+                                  bool fast_replay,
+                                  bool with_summary) {
     if (!data || !filename) return ERROR_INVALID_PARAMETER;
     
-    FILE* file = fopen(filename, "rb");
-    if (!file) return ERROR_FILE_OPERATION;
+    // Stop any current recording/playback
+    data_class_clear_all(data, true);
     
-    SavedData* playback = calloc(1, sizeof(SavedData));
-    if (!playback) {
-        fclose(file);
-        return ERROR_OUT_OF_MEMORY;
-    }
+    // Load playback data
+    SavedData* playback_data = NULL;
+    ErrorCode error = sweep_data_deserialize(filename, &playback_data);
+    if (error != ERROR_NONE) return error;
     
-    // Read frontal points
-    size_t count;
-    if (fread(&count, sizeof(size_t), 1, file) != 1) {
-        free(playback);
-        fclose(file);
-        return ERROR_FILE_OPERATION;
-    }
-    
-    playback->frontal_points.values = malloc(count * sizeof(double));
-    playback->frontal_points.timestamps = malloc(count * sizeof(double));
-    if (!playback->frontal_points.values || !playback->frontal_points.timestamps) {
-        free(playback->frontal_points.values);
-        free(playback->frontal_points.timestamps);
-        free(playback);
-        fclose(file);
-        return ERROR_OUT_OF_MEMORY;
-    }
-    
-    if (fread(playback->frontal_points.values, sizeof(double), count, file) != count ||
-        fread(playback->frontal_points.timestamps, sizeof(double), count, file) != count) {
-        free(playback->frontal_points.values);
-        free(playback->frontal_points.timestamps);
-        free(playback);
-        fclose(file);
-        return ERROR_FILE_OPERATION;
-    }
-    playback->frontal_points.count = count;
-    playback->frontal_points.capacity = count;
-    
-    // Read sagittal points
-    if (fread(&count, sizeof(size_t), 1, file) != 1) {
-        free_data_points(&playback->frontal_points);
-        free(playback);
-        fclose(file);
-        return ERROR_FILE_OPERATION;
-    }
-    
-    playback->sagittal_points.values = malloc(count * sizeof(double));
-    playback->sagittal_points.timestamps = malloc(count * sizeof(double));
-    if (!playback->sagittal_points.values || !playback->sagittal_points.timestamps) {
-        free_data_points(&playback->frontal_points);
-        free(playback->sagittal_points.values);
-        free(playback->sagittal_points.timestamps);
-        free(playback);
-        fclose(file);
-        return ERROR_OUT_OF_MEMORY;
-    }
-    
-    if (fread(playback->sagittal_points.values, sizeof(double), count, file) != count ||
-        fread(playback->sagittal_points.timestamps, sizeof(double), count, file) != count) {
-        free_data_points(&playback->frontal_points);
-        free_data_points(&playback->sagittal_points);
-        free(playback);
-        fclose(file);
-        return ERROR_FILE_OPERATION;
-    }
-    playback->sagittal_points.count = count;
-    playback->sagittal_points.capacity = count;
-    
-    // Read scan type
-    size_t scan_type_len;
-    if (fread(&scan_type_len, sizeof(size_t), 1, file) != 1) {
-        free_data_points(&playback->frontal_points);
-        free_data_points(&playback->sagittal_points);
-        free(playback);
-        fclose(file);
-        return ERROR_FILE_OPERATION;
-    }
-    
-    playback->scan_type = malloc(scan_type_len + 1);
-    if (!playback->scan_type) {
-        free_data_points(&playback->frontal_points);
-        free_data_points(&playback->sagittal_points);
-        free(playback);
-        fclose(file);
-        return ERROR_OUT_OF_MEMORY;
-    }
-    
-    if (fread(playback->scan_type, sizeof(char), scan_type_len, file) != scan_type_len) {
-        free_data_points(&playback->frontal_points);
-        free_data_points(&playback->sagittal_points);
-        free(playback->scan_type);
-        free(playback);
-        fclose(file);
-        return ERROR_FILE_OPERATION;
-    }
-    playback->scan_type[scan_type_len] = '\0';
-    
-    fclose(file);
-    
-    // Set up playback state
-    if (data->playback_data) {
-        free_data_points(&data->playback_data->frontal_points);
-        free_data_points(&data->playback_data->sagittal_points);
-        free(data->playback_data->scan_type);
-        free(data->playback_data);
-    }
-    
-    data->playback_data = playback;
-    data->state = PLAYBACK;
+    data->playback_data = playback_data;
     data->playback_on = true;
-    time(&data->playback_last_run_time);
+    data->state = PLAYBACK;
+    data->fast_replay = fast_replay;
     
+    // Handle playback speed based on fast_replay
+    if (fast_replay) {
+        error = data_class_load_playback_speed(DEFAULT_CONFIG_PATH, &data->playback_speed);
+        if (error != ERROR_NONE) {
+            // If loading fails, use default speed
+            data->playback_speed = DEFAULT_PLAYBACK_SPEED;
+            data_class_save_playback_speed(DEFAULT_CONFIG_PATH, DEFAULT_PLAYBACK_SPEED);
+        }
+    } else {
+        data->playback_speed = 1.0;
+    }
+    
+    // Handle with_summary parameter
+    if (with_summary && playback_data && 
+        playback_data->frontal_points.count > 0) {
+        data->playback_last_run_time = 
+            playback_data->frontal_points.timestamps[playback_data->frontal_points.count - 1];
+    } else {
+        GetLocalTime(&data->playback_last_run_time);
+    }
+    
+    // Update UI
     update_recording_label(data);
-    set_button_states(data, false, true, false);
+    data_class_set_button_state(data, data->play_button_path, false);
+    data_class_set_button_state(data, data->pause_button_path, true);
+    data_class_set_button_state(data, data->start_record_button_path, false);
     
     return ERROR_NONE;
 }
@@ -663,7 +774,36 @@ ErrorCode data_class_stop_playback(DataClass* data) {
     data->playback_on = false;
     
     update_recording_label(data);
-    set_button_states(data, true, false, false);
+    data_class_set_button_state(data, data->play_button_path, true);
+    data_class_set_button_state(data, data->pause_button_path, false);
+    data_class_set_button_state(data, data->start_record_button_path, true);
+    
+    return ERROR_NONE;
+}
+
+ErrorCode data_class_pause_playback(DataClass* data) {
+    if (!data) return ERROR_INVALID_PARAMETER;
+    
+    if (!data->playback_on) return ERROR_INVALID_STATE;
+    
+    data->state = PLAYBACK_PAUSED;
+    update_recording_label(data);
+    data_class_set_button_state(data, data->play_button_path, true);
+    data_class_set_button_state(data, data->pause_button_path, false);
+    
+    return ERROR_NONE;
+}
+
+ErrorCode data_class_resume_playback(DataClass* data) {
+    if (!data) return ERROR_INVALID_PARAMETER;
+    
+    if (!data->playback_on) return ERROR_INVALID_STATE;
+    
+    data->state = PLAYBACK;
+    GetLocalTime(&data->playback_last_run_time);
+    update_recording_label(data);
+    data_class_set_button_state(data, data->play_button_path, false);
+    data_class_set_button_state(data, data->pause_button_path, true);
     
     return ERROR_NONE;
 }
@@ -684,18 +824,22 @@ ErrorCode data_class_mark_playback_complete(DataClass* data) {
 }
 
 ErrorCode data_class_set_button_state(DataClass* data, 
-                                    const char* button_name, 
+                                    const char* button_path, 
                                     bool active) {
-    if (!data || !button_name) return ERROR_INVALID_PARAMETER;
+    if (!data || !button_path) return ERROR_INVALID_PARAMETER;
     
     char cmd[256];
-    snprintf(cmd, sizeof(cmd), "%s configure -state %s",
-             button_name, active ? "normal" : "disabled");
-    Tcl_Eval(data->interp, cmd);
+    snprintf(cmd, sizeof(cmd), "%s configure -state {%s}",
+             button_path, active ? "normal" : "disabled");
+    
+    if (Tcl_Eval(data->interp, cmd) != TCL_OK) {
+        return ERROR_TCL_EVAL;
+    }
     
     return ERROR_NONE;
 }
 
+// Getter implementations
 bool data_class_is_recording(const DataClass* data) {
     return data ? data->recording_on : false;
 }
@@ -708,8 +852,9 @@ bool data_class_is_paused(const DataClass* data) {
     return data ? data->recording_paused : false;
 }
 
-time_t data_class_get_recording_start_time(const DataClass* data) {
-    return data ? data->recording_start_time : 0;
+SYSTEMTIME data_class_get_recording_start_time(const DataClass* data) {
+    SYSTEMTIME empty_time = {0};
+    return data ? data->recording_start_time : empty_time;
 }
 
 const SavedData* data_class_get_saved_data(const DataClass* data) {
@@ -732,5 +877,17 @@ const char* data_class_get_scan_type(const DataClass* data) {
     return data ? data->recording_scan_type : NULL;
 }
 
-
-
+// Simple helper for time differences in seconds
+static double get_time_difference_seconds(const SYSTEMTIME* start, const SYSTEMTIME* end) {
+    FILETIME ft1, ft2;
+    SystemTimeToFileTime(start, &ft1);
+    SystemTimeToFileTime(end, &ft2);
+    
+    ULARGE_INTEGER uli1, uli2;
+    uli1.LowPart = ft1.dwLowDateTime;
+    uli1.HighPart = ft1.dwHighDateTime;
+    uli2.LowPart = ft2.dwLowDateTime;
+    uli2.HighPart = ft2.dwHighDateTime;
+    
+    return (uli2.QuadPart - uli1.QuadPart) / 10000000.0;
+}

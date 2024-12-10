@@ -1,5 +1,8 @@
 #ifndef PICTURE_WINDOW_FUNCTIONS_H
 #define PICTURE_WINDOW_FUNCTIONS_H
+#define DEFAULT_IMAGES_DIR "C:\\hardwaredriver_c\\src\\data"
+#define DEFAULT_FRONTAL_IMAGE "figure8.jpg"
+#define DEFAULT_SAGITTAL_IMAGE "figure10.jpg"
 
 #include <tcl.h>
 #include <tk.h>
@@ -29,5 +32,7 @@ char* picture_window_functions_pad_values(double angle);
 // Getters
 const char* picture_window_functions_get_image_path(PictureWindowFunctions* window);
 int picture_window_functions_get_size(PictureWindowFunctions* window);
+
+
 
 #endif // PICTURE_WINDOW_FUNCTIONS_H

@@ -1,0 +1,37 @@
+        
+        
+        
+        
+        
+        SweepDataUIReusable.h/c
+            |
+            |
+            |
+            data_table.h/c
+                        |-->commons.h
+                        |-->data_class.h/c
+                                    |-->image_window_options.h/c
+                                    |-->utils.h/c   
+                        |-->utils.h/c 
+            |            
+            NamespaceOptions.h/c
+                        |-->display_tilt_supplemental_windows.h/c
+            |
+            |   
+            Graph.h/c
+                        |-->graph_plot_window.h/c
+                        |-->NamespaceOptions.h/c
+                        |-->picture_window_reusable.h/c
+                        |-->data_class.h/c
+                        |-->windows_api.h/c
+            |
+            ImageHelper.h/c
+                        |-->externals only
+            |
+            scrollable_frame.h/c
+                        |-->commons.h
+
+
+Once SweepDataUIReusable.h/c is done, we can update mode_sweep.h/c, mode_44_sweep_scan.h/c,
+then we can implement: --> mode_change_notification.h/c, --> modes.h/c
+-->Finally we can implement main.h/c and then we can package.  

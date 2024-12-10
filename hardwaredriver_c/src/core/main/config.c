@@ -6,7 +6,7 @@
 #include <setupapi.h>
 #include <initguid.h>
 #include <devguid.h>
-#include <jansson.h>
+#include "cJSON.h"
 #include "logger.h"
 
 // Static helper function declarations
@@ -63,63 +63,57 @@ ConfigError config_load_from_file(Config* config, const char* config_path) {
         return CONFIG_ERROR_MEMORY;
     }
     
-    json_error_t error;
-    json_t* root = json_load_file(config_path, 0, &error);
+    // Read file
+    FILE* file = fopen(config_path, "r");
+    if (!file) {
+        log_error("Could not open config file: %s", config_path);
+        return CONFIG_ERROR_FILE_ACCESS;
+    }
+
+    // Get file size and read contents
+    fseek(file, 0, SEEK_END);
+    long size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char* json_string = (char*)malloc(size + 1);
+    if (!json_string) {
+        fclose(file);
+        return CONFIG_ERROR_MEMORY;
+    }
+
+    fread(json_string, 1, size, file);
+    json_string[size] = '\0';
+    fclose(file);
+
+    // Parse JSON
+    cJSON* root = cJSON_Parse(json_string);
+    free(json_string);
+
     if (!root) {
-        log_error("Failed to load config file: %s", error.text);
+        log_error("Failed to parse config JSON");
         return CONFIG_ERROR_JSON_PARSE;
     }
-    
-    // Load all configuration values
-    json_t* value;
-    
-    // Port configuration
-    value = json_object_get(root, "port_name");
-    if (json_is_string(value)) {
-        strncpy(config->port_name, json_string_value(value), MAX_PORT_NAME_LENGTH - 1);
-        log_debug("Loaded port name: %s", config->port_name);
+
+    // Extract values
+    cJSON* com_port = cJSON_GetObjectItem(root, "com_port");
+    cJSON* baud_rate = cJSON_GetObjectItem(root, "baud_rate");
+    cJSON* log_level = cJSON_GetObjectItem(root, "log_level");
+
+    if (!com_port || !cJSON_IsString(com_port) ||
+        !baud_rate || !cJSON_IsNumber(baud_rate) ||
+        !log_level || !cJSON_IsString(log_level)) {
+        cJSON_Delete(root);
+        return CONFIG_ERROR_JSON_PARSE;
     }
-    
-    value = json_object_get(root, "port_auto_detect");
-    if (json_is_boolean(value)) {
-        config->port_auto_detect = json_boolean_value(value);
-        log_debug("Port auto-detect: %s", config->port_auto_detect ? "enabled" : "disabled");
-    }
-    
-    // Operation mode
-    value = json_object_get(root, "is_service");
-    if (json_is_boolean(value)) {
-        config->is_service = json_boolean_value(value);
-        log_debug("Service mode: %s", config->is_service ? "enabled" : "disabled");
-    }
-    
-    value = json_object_get(root, "debug_enabled");
-    if (json_is_boolean(value)) {
-        config->debug_enabled = json_boolean_value(value);
-        log_debug("Debug mode: %s", config->debug_enabled ? "enabled" : "disabled");
-    }
-    
-    value = json_object_get(root, "info_enabled");
-    if (json_is_boolean(value)) {
-        config->info_enabled = json_boolean_value(value);
-        log_debug("Info logging: %s", config->info_enabled ? "enabled" : "disabled");
-    }
-    
-    value = json_object_get(root, "debug_events");
-    if (json_is_boolean(value)) {
-        config->debug_events = json_boolean_value(value);
-        log_debug("Debug events: %s", config->debug_events ? "enabled" : "disabled");
-    }
-    
-    // Sample configuration
-    value = json_object_get(root, "sample_count");
-    if (json_is_integer(value)) {
-        config->sample_count = (int)json_integer_value(value);
-        log_debug("Sample count: %d", config->sample_count);
-    }
-    
-    json_decref(root);
-    
+
+    strncpy(config->com_port, com_port->valuestring, sizeof(config->com_port) - 1);
+    config->com_port[sizeof(config->com_port) - 1] = '\0';
+    config->baud_rate = (int)baud_rate->valuedouble;
+    strncpy(config->log_level, log_level->valuestring, sizeof(config->log_level) - 1);
+    config->log_level[sizeof(config->log_level) - 1] = '\0';
+
+    cJSON_Delete(root);
+
     // Validate loaded configuration
     return config_validate(config);
 }
@@ -130,25 +124,33 @@ ConfigError config_save_to_file(Config* config, const char* config_path) {
         return CONFIG_ERROR_MEMORY;
     }
     
-    json_t* root = json_object();
-    
-    // Save all configuration values
-    json_object_set_new(root, "port_name", json_string(config->port_name));
-    json_object_set_new(root, "port_auto_detect", json_boolean(config->port_auto_detect));
-    json_object_set_new(root, "is_service", json_boolean(config->is_service));
-    json_object_set_new(root, "debug_enabled", json_boolean(config->debug_enabled));
-    json_object_set_new(root, "info_enabled", json_boolean(config->info_enabled));
-    json_object_set_new(root, "debug_events", json_boolean(config->debug_events));
-    json_object_set_new(root, "sample_count", json_integer(config->sample_count));
-    
-    if (json_dump_file(root, config_path, JSON_INDENT(2)) != 0) {
-        log_error("Failed to save config file: %s", config_path);
-        json_decref(root);
+    cJSON* root = cJSON_CreateObject();
+    if (!root) {
+        return CONFIG_ERROR_MEMORY;
+    }
+
+    cJSON_AddStringToObject(root, "com_port", config->com_port);
+    cJSON_AddNumberToObject(root, "baud_rate", config->baud_rate);
+    cJSON_AddStringToObject(root, "log_level", config->log_level);
+
+    char* json_string = cJSON_Print(root);
+    if (!json_string) {
+        cJSON_Delete(root);
+        return CONFIG_ERROR_MEMORY;
+    }
+
+    FILE* file = fopen(config_path, "w");
+    if (!file) {
+        free(json_string);
+        cJSON_Delete(root);
         return CONFIG_ERROR_FILE_ACCESS;
     }
-    
-    log_debug("Configuration saved successfully to: %s", config_path);
-    json_decref(root);
+
+    fprintf(file, "%s", json_string);
+    fclose(file);
+
+    free(json_string);
+    cJSON_Delete(root);
     return CONFIG_SUCCESS;
 }
 
@@ -165,7 +167,7 @@ ConfigError config_validate(Config* config) {
     }
     
     // Validate port settings
-    if (!config->port_auto_detect && strlen(config->port_name) == 0) {
+    if (!config->port_auto_detect && strlen(config->com_port) == 0) {
         log_error("Port name is required when auto-detect is disabled");
         return CONFIG_ERROR_INVALID_CONFIG;
     }
@@ -238,7 +240,7 @@ ConfigError config_detect_port(Config* config) {
                     DWORD type = 0;
                     DWORD size = sizeof(port_name);
                     if (RegQueryValueEx(key, "PortName", NULL, &type, (LPBYTE)port_name, &size) == ERROR_SUCCESS) {
-                        strncpy(config->port_name, port_name, MAX_PORT_NAME_LENGTH - 1);
+                        strncpy(config->com_port, port_name, MAX_PORT_NAME_LENGTH - 1);
                         found_port = true;
                         log_debug("Found compatible port: %s", port_name);
                     }

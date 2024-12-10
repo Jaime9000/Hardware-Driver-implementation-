@@ -121,24 +121,19 @@ ErrorCode encode_curr_datetime(char* output, size_t output_size) {
         return ERROR_INVALID_PARAMETER;
     }
 
-    time_t now;
-    struct tm tm_now;
-    
-    time(&now);
-    if (localtime_s(&tm_now, &now) != 0) {
-        log_error("Failed to get local time");
-        return ERROR_TIME_CONVERSION;
-    }
+    SYSTEMTIME now;
+    GetLocalTime(&now);
 
-    // Format: YYYY-MM-DDTHH__MM__SS.mmmmmm
+    // Format: YYYY-MM-DDTHH__MM__SS.mmmmmm (matching Python's isoformat with __ for :)
     int written = snprintf(output, output_size,
-                         "%04d-%02d-%02dT%02d__%02d__%02d.000000",
-                         tm_now.tm_year + 1900,
-                         tm_now.tm_mon + 1,
-                         tm_now.tm_mday,
-                         tm_now.tm_hour,
-                         tm_now.tm_min,
-                         tm_now.tm_sec);
+                         "%04d-%02d-%02dT%02d__%02d__%02d.%06d",
+                         now.wYear,
+                         now.wMonth,
+                         now.wDay,
+                         now.wHour,
+                         now.wMinute,
+                         now.wSecond,
+                         now.wMilliseconds * 1000);  // Convert to microseconds
 
     if (written < 0 || written >= output_size) {
         log_error("DateTime string truncated");
@@ -148,27 +143,43 @@ ErrorCode encode_curr_datetime(char* output, size_t output_size) {
     return ERROR_NONE;
 }
 
-ErrorCode decode_encoded_datetime(const char* encoded_datetime, struct tm* decoded_time) {
+ErrorCode decode_encoded_datetime(const char* encoded_datetime, SYSTEMTIME* decoded_time) {
     if (!encoded_datetime || !decoded_time) {
         return ERROR_INVALID_PARAMETER;
     }
 
-    int year, month, day, hour, min, sec;
+    int year, month, day, hour, min, sec, microsec;
     
     // Parse format: YYYY-MM-DDTHH__MM__SS.mmmmmm
-    if (sscanf(encoded_datetime, "%d-%d-%dT%d__%d__%d",
-               &year, &month, &day, &hour, &min, &sec) != 6) {
+    if (sscanf(encoded_datetime, "%d-%d-%dT%d__%d__%d.%d",
+               &year, &month, &day, &hour, &min, &sec, &microsec) != 7) {
         log_error("Failed to parse datetime string");
         return ERROR_TIME_CONVERSION;
     }
 
-    memset(decoded_time, 0, sizeof(struct tm));
-    decoded_time->tm_year = year - 1900;
-    decoded_time->tm_mon = month - 1;
-    decoded_time->tm_mday = day;
-    decoded_time->tm_hour = hour;
-    decoded_time->tm_min = min;
-    decoded_time->tm_sec = sec;
+    memset(decoded_time, 0, sizeof(SYSTEMTIME));
+    decoded_time->wYear = year;
+    decoded_time->wMonth = month;
+    decoded_time->wDay = day;
+    decoded_time->wHour = hour;
+    decoded_time->wMinute = min;
+    decoded_time->wSecond = sec;
+    decoded_time->wMilliseconds = microsec / 1000;  // Convert microseconds to milliseconds
 
     return ERROR_NONE;
 }
+
+/*MAY NEED THIS LATER unused for now*/
+/*
+
+static ErrorCode format_datetime_for_display(const SYSTEMTIME* time, char* buffer, size_t buffer_size) {
+    if (!time || !buffer || buffer_size < 11) return ERROR_INVALID_PARAMETER;
+    
+    snprintf(buffer, buffer_size, "%02d-%02d-%04d",
+             time->wMonth,
+             time->wDay,
+             time->wYear);
+             
+    return ERROR_NONE;
+}
+*/

@@ -28,6 +28,21 @@ typedef struct {
     char event_data[MAX_EVENT_DATA_LENGTH];
     bool exit_thread;
     bool app_ready;
+    
+    // File watching
+    HANDLE dir_handle;
+    HANDLE thread_handle;
+    OVERLAPPED overlapped;
+    volatile BOOL should_run;
+    
+    // Callbacks
+    OptionsDisplayCallback options_display_callback;
+    NamespaceCallback namespace_callback;
+    PatientNameCallback patient_name_callback;
+    UserDataCallback user_data_callback;
+    
+    // Display options
+    bool options_display;
 } NamespaceOptions;
 
 // Constructor/destructor
@@ -49,5 +64,16 @@ ErrorCode namespace_options_load_from_directory(NamespaceOptions* options);
 // Utility functions
 ErrorCode namespace_options_set_root_data_dir(const char* drive_name);
 ErrorCode namespace_options_get_root_data_dir(char* dir, size_t max_length);
+
+// Add these functions
+ErrorCode namespace_options_setup_watch(NamespaceOptions* options,
+                                      OptionsDisplayCallback display_cb,
+                                      NamespaceCallback namespace_cb,
+                                      PatientNameCallback patient_cb);
+ErrorCode namespace_options_setup_user_data_watch(NamespaceOptions* options,
+                                                UserDataCallback callback);
+
+// Add to header file
+ErrorCode namespace_options_reset_on_first_init(void);
 
 #endif // NAMESPACE_OPTIONS_H

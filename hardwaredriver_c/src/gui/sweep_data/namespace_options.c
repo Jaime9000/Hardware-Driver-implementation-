@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <direct.h>
+#include "display_tilt_supplemental_windows.h"
 
 #define OPTIONS_FILENAME "namespace_options"
 #define PATIENT_NAME_FILENAME "patient_name_options"
@@ -58,9 +59,72 @@ static ErrorCode set_patient_path(NamespaceOptions* options, const char* patient
     return error;
 }
 
+static DWORD WINAPI watch_directory(LPVOID param) {
+    NamespaceOptions* options = (NamespaceOptions*)param;
+    char buffer[BUFFER_SIZE];
+    DWORD bytes_returned;
+    
+    while (options->should_run) {
+        if (ReadDirectoryChangesW(
+                options->dir_handle,
+                buffer,
+                BUFFER_SIZE,
+                TRUE,
+                FILE_NOTIFY_CHANGE_LAST_WRITE,
+                &bytes_returned,
+                &options->overlapped,
+                NULL)) {
+            
+            WaitForSingleObject(options->overlapped.hEvent, INFINITE);
+            
+            FILE_NOTIFY_INFORMATION* event = (FILE_NOTIFY_INFORMATION*)buffer;
+            do {
+                // Convert filename to char array
+                char filename[MAX_PATH];
+                WideCharToMultiByte(CP_UTF8, 0, event->FileName,
+                                  event->FileNameLength / sizeof(WCHAR),
+                                  filename, MAX_PATH, NULL, NULL);
+                filename[event->FileNameLength / sizeof(WCHAR)] = '\0';
+                
+                if (strstr(filename, "options_display")) {
+                    bool show_windows;
+                    if (read_config_tilt_supplemental_windows(&show_windows) == ERROR_NONE) {
+                        options->options_display = show_windows;
+                        if (options->options_display_callback) {
+                            options->options_display_callback(show_windows);
+                        }
+                    }
+                } else if (strstr(filename, "namespace_options")) {
+                    if (options->namespace_callback) {
+                        options->namespace_callback();
+                    }
+                } else if (strstr(filename, "patient_name_options")) {
+                    if (options->patient_name_callback) {
+                        options->patient_name_callback(filename);
+                    }
+                } else if (strstr(filename, "sweep_data")) {
+                    if (options->user_data_callback) {
+                        options->user_data_callback(filename);
+                    }
+                }
+                
+                event = (FILE_NOTIFY_INFORMATION*)((LPBYTE)event + event->NextEntryOffset);
+            } while (event->NextEntryOffset);
+        }
+    }
+    return 0;
+}
+
 ErrorCode namespace_options_create(NamespaceOptions** options, bool reset_states) {
     *options = (NamespaceOptions*)calloc(1, sizeof(NamespaceOptions));
     if (!*options) return ERROR_MEMORY_ALLOCATION;
+    
+    // Initialize options_display from config
+    ErrorCode error = read_config_tilt_supplemental_windows(&(*options)->options_display);
+    if (error != ERROR_NONE) {
+        free(*options);
+        return error;
+    }
     
     if (reset_states) {
         (*options)->exit_thread = false;
@@ -81,6 +145,19 @@ ErrorCode namespace_options_create(NamespaceOptions** options, bool reset_states
 }
 
 void namespace_options_destroy(NamespaceOptions* options) {
+    if (!options) return;
+
+    // Stop watching thread
+    options->should_run = FALSE;
+    
+    if (options->thread_handle) {
+        CancelIoEx(options->dir_handle, &options->overlapped);
+        WaitForSingleObject(options->thread_handle, INFINITE);
+        CloseHandle(options->thread_handle);
+        CloseHandle(options->overlapped.hEvent);
+        CloseHandle(options->dir_handle);
+    }
+
     free(options);
 }
 
@@ -100,21 +177,26 @@ ErrorCode namespace_options_get_patient_name(NamespaceOptions* options, char* na
 }
 
 ErrorCode namespace_options_set_patient_name(NamespaceOptions* options, const char* name) {
-    char filepath[MAX_PATH_LENGTH];
-    ErrorCode error = get_full_filepath(PATIENT_NAME_FILENAME, filepath, MAX_PATH_LENGTH);
+    ErrorCode error = write_patient_name(name);  // Existing functionality
     if (error != ERROR_NONE) return error;
 
-    FILE* file = fopen(filepath, "wb");
-    if (!file) return ERROR_FILE_OPEN;
+    error = set_patient_path(options, name);  // Existing functionality
+    if (error != ERROR_NONE) return error;
 
-    size_t name_len = strlen(name);
-    if (fwrite(name, 1, name_len, file) != name_len) {
-        fclose(file);
-        return ERROR_FILE_WRITE;
+    // Reset file watching when patient changes
+    if (options->dir_handle) {
+        namespace_options_destroy(options);
+        error = namespace_options_setup_watch(options, 
+                                           options->options_display_callback,
+                                           options->namespace_callback,
+                                           options->patient_name_callback);
+        if (error != ERROR_NONE) return error;
+
+        error = namespace_options_setup_user_data_watch(options,
+                                                     options->user_data_callback);
     }
 
-    fclose(file);
-    return set_patient_path(options, name);
+    return error;
 }
 
 ErrorCode namespace_options_get_event(NamespaceOptions* options, char* event, size_t max_event_length, 
@@ -245,4 +327,86 @@ ErrorCode namespace_options_get_root_data_dir(char* dir, size_t max_length) {
     
     fclose(file);
     return ERROR_NONE;
+}
+
+ErrorCode namespace_options_setup_watch(NamespaceOptions* options,
+                                      OptionsDisplayCallback display_cb,
+                                      NamespaceCallback namespace_cb,
+                                      PatientNameCallback patient_cb) {
+    if (!options) return ERROR_INVALID_PARAMETER;
+
+    // Store callbacks
+    options->options_display_callback = display_cb;
+    options->namespace_callback = namespace_cb;
+    options->patient_name_callback = patient_cb;
+
+    // Setup directory watching
+    wchar_t wide_path[MAX_PATH];
+    MultiByteToWideChar(CP_UTF8, 0, K7_DATA_DIR, -1, wide_path, MAX_PATH);
+    
+    options->dir_handle = CreateFileW(
+        wide_path,
+        FILE_LIST_DIRECTORY,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
+        NULL);
+        
+    if (options->dir_handle == INVALID_HANDLE_VALUE) {
+        return ERROR_FILE_OPEN;
+    }
+    
+    options->overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    options->should_run = TRUE;
+    options->thread_handle = CreateThread(NULL, 0, watch_directory, options, 0, NULL);
+    
+    return ERROR_NONE;
+}
+
+ErrorCode namespace_options_setup_user_data_watch(NamespaceOptions* options,
+                                                UserDataCallback callback) {
+    if (!options || !options->patient_path[0]) return ERROR_INVALID_PARAMETER;
+
+    options->user_data_callback = callback;
+
+    // Create a new file handle for the patient directory
+    wchar_t wide_path[MAX_PATH];
+    MultiByteToWideChar(CP_UTF8, 0, options->patient_path, -1, wide_path, MAX_PATH);
+    
+    HANDLE patient_dir = CreateFileW(
+        wide_path,
+        FILE_LIST_DIRECTORY,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
+        NULL);
+        
+    if (patient_dir == INVALID_HANDLE_VALUE) {
+        return ERROR_FILE_OPEN;
+    }
+
+    // Start a new thread for watching patient directory
+    HANDLE thread = CreateThread(NULL, 0, watch_directory, options, 0, NULL);
+    if (!thread) {
+        DWORD win_error = GetLastError();  // Get the Windows error code
+        CloseHandle(patient_dir);
+        log_error("Failed to create thread: Windows error %lu", win_error);
+        return ERROR_INVALID_STATE;  // Use existing error code
+    }
+
+    return ERROR_NONE;
+}
+
+// Add new function to handle new user data records (similar to Python's __new_user_data_record)
+static ErrorCode handle_new_user_data_record(NamespaceOptions* options, const char* user_record_path) {
+    char* file_name = strrchr(user_record_path, '\\');
+    if (!file_name) {
+        file_name = (char*)user_record_path;
+    } else {
+        file_name++; // Skip the backslash
+    }
+    
+    return namespace_options_set_event(options, EVENT_USER_RECORD_SAVED, file_name);
 }

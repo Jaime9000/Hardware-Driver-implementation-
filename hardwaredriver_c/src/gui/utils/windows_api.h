@@ -5,8 +5,8 @@
 #include <stdbool.h>
 #include "error_codes.h"
 
-#define COORDINATES_FILE_DIR_PATH "C:\\K7\\python"
-#define COORDINATES_FILE_PATH "C:\\K7\\python\\sweep_window_coordinates.pkl"
+#define COORDINATES_FILE_DIR_PATH "C:\\K7\\c_wrapper_serialize_bucket"
+#define COORDINATES_FILE_PATH "C:\\K7\\c_wrapper_serialize_bucket\\sweep_window_coordinates.dat"
 #define MAX_WINDOW_TITLE 256
 
 typedef struct {
@@ -23,7 +23,7 @@ typedef struct {
 typedef void (*RedrawCallback)(void);
 
 // File operations
-ErrorCode check_python_bucket(void);
+ErrorCode check_c_serialize_bucket(void);
 ErrorCode load_coordinates(CoordinatesData* coordinates);
 ErrorCode save_coordinates(const CoordinatesData* coordinates);
 

@@ -5,6 +5,10 @@
 #include "windows_api.h"
 #include "logger.h"
 
+#define DEFAULT_IMAGES_DIR "C:\\hardwaredriver_c\\src\\data"
+#define DEFAULT_FRONTAL_IMAGE "figure8.jpg"
+#define DEFAULT_SAGITTAL_IMAGE "figure10.jpg"
+
 struct PictureWindowFunctions {
     Tcl_Interp* interp;
     bool is_frontal;
@@ -44,42 +48,61 @@ PictureWindowFunctions* picture_window_functions_create(Tcl_Interp* interp,
         return NULL;
     }
 
+    // Add watch event setup like Python version
+    ErrorCode result = setup_watch_event((RedrawCallback)picture_window_functions_place_window);
+    if (result != ERROR_NONE) {
+        picture_window_functions_destroy(window);
+        return NULL;
+    }
+
     return window;
 }
 
 ErrorCode picture_window_functions_update_patient_name(PictureWindowFunctions* window,
                                                      const char* patient_name) {
-    char* first_name = strdup(patient_name);
-    char* last_name = strchr(first_name, '+');
+    if (!window || !patient_name) return ERROR_INVALID_PARAMETER;
+
+    // Split patient name
+    char* name_copy = strdup(patient_name);
+    char* last_name = strchr(name_copy, '+');
     if (!last_name) {
-        free(first_name);
+        free(name_copy);
         return ERROR_INVALID_PARAMETER;
     }
     *last_name++ = '\0';
+    char* first_name = name_copy;
 
-    char path[512];
-    snprintf(path, sizeof(path), "%s/%s/%s/%s.JPG",
-             namespace_options_root_data_dir(),
-             last_name, first_name,
-             window->is_frontal ? "sagittal" : "frontal");
+    // Build patient-specific image path
+    char patient_image_path[MAX_PATH];
+    snprintf(patient_image_path, sizeof(patient_image_path), "%s\\%s\\%s\\%s",
+             namespace_options_get_root_data_dir(),
+             last_name,
+             first_name,
+             window->is_frontal ? "sagittal.JPG" : "frontal.JPG");
 
-    free(first_name);
-
-    // Check if file exists, otherwise use default
-    struct stat st;
-    if (stat(path, &st) == 0) {
+    // Check if patient-specific image exists
+    if (GetFileAttributesA(patient_image_path) != INVALID_FILE_ATTRIBUTES) {
+        // Use patient image
         free(window->filename_face);
-        window->filename_face = strdup(path);
+        window->filename_face = strdup(patient_image_path);
     } else {
         // Use default image
-        const char* default_img = window->is_frontal ? "figure8.jpg" : "figure10.jpg";
-        snprintf(path, sizeof(path), "%s/data/%s", 
-                 get_package_data_dir(), default_img);
+        char default_image_path[MAX_PATH];
+        snprintf(default_image_path, sizeof(default_image_path), "%s\\%s",
+                DEFAULT_IMAGES_DIR,
+                window->is_frontal ? DEFAULT_FRONTAL_IMAGE : DEFAULT_SAGITTAL_IMAGE);
+        
         free(window->filename_face);
-        window->filename_face = strdup(path);
+        window->filename_face = strdup(default_image_path);
     }
 
-    return picture_window_functions_create_image_handler(window);
+    free(name_copy);
+    
+    // Update window title with patient name
+    free(window->patient_name);
+    window->patient_name = strdup(patient_name);
+
+    return ERROR_NONE;
 }
 
 ErrorCode picture_window_functions_create_image_handler(PictureWindowFunctions* window) {
@@ -108,6 +131,9 @@ ErrorCode picture_window_functions_place_window(PictureWindowFunctions* window) 
     if (err != ERROR_NONE) return err;
 
     window->size = size;
+    
+    err = picture_window_functions_create_image_handler(window);
+    if (err != ERROR_NONE) return err;
     
     char cmd[256];
     snprintf(cmd, sizeof(cmd), 
@@ -148,6 +174,10 @@ char* picture_window_functions_pad_values(double angle) {
 
 void picture_window_functions_destroy(PictureWindowFunctions* window) {
     if (!window) return;
+    
+    // Stop the watch event before cleanup
+    stop_watch_event();
+    
     free(window->patient_name);
     free(window->window_path);
     free(window->filename_face);

@@ -1,0 +1,628 @@
+<?xml version='1.0' encoding='utf-8'?>
+<interface version="1.1">
+  <object class="tk.Menu" id="mainmenu">
+    <property name="tearoff">false</property>
+    <child>
+      <object class="tk.Menuitem.Command" id="mm_clear">
+        <property name="command" type="command" cbtype="with_wid" args="">on_mainmenu_action</property>
+        <property name="label" translatable="yes">Clear</property>
+      </object>
+    </child>
+    <child>
+      <object class="tk.Menuitem.Command" id="mm_about">
+        <property name="command" type="command" cbtype="with_wid" args="">on_mainmenu_action</property>
+        <property name="label" translatable="yes">About</property>
+      </object>
+    </child>
+    <child>
+      <object class="tk.Menuitem.Separator" id="Separator_1" />
+    </child>
+    <child>
+      <object class="tk.Menuitem.Command" id="mm_quit">
+        <property name="command" type="command" cbtype="with_wid" args="">on_mainmenu_action</property>
+        <property name="label" translatable="yes">Quit</property>
+      </object>
+    </child>
+  </object>
+  <object class="tk.Toplevel" id="mainwindow">
+    <property name="height">200</property>
+    <property name="resizable">both</property>
+    <property name="title" translatable="yes">Myapp</property>
+    <property name="width">200</property>
+    <child>
+      <object class="ttk.Frame" id="mw_fcontainer">
+        <property name="height">200</property>
+        <property name="padding">2</property>
+        <property name="width">200</property>
+        <layout manager="grid">
+          <property name="column">0</property>
+          <property name="propagate">True</property>
+          <property name="row">0</property>
+          <property name="sticky">nsew</property>
+        </layout>
+        <child>
+          <object class="ttk.Frame" id="recording_toolbar_frame">
+            <property name="borderwidth">2</property>
+            <property name="height">20</property>
+            <property name="width">200</property>
+            <layout manager="grid">
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">0</property>
+              <property name="sticky">n</property>
+              <property type="row" id="0" name="weight">1</property>
+            </layout>
+            <child>
+              <object class="ttk.Button" id="start_record_button">
+                <property name="text" translatable="yes">Start Recording</property>
+                <layout manager="grid">
+                  <property name="column">0</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="stop_record_button">
+                <property name="state">disabled</property>
+                <property name="text" translatable="yes">Stop Recording </property>
+                <layout manager="grid">
+                  <property name="column">1</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="save_record_button">
+                <property name="state">disabled</property>
+                <property name="text" translatable="yes">Save</property>
+                <layout manager="grid">
+                  <property name="column">2</property>
+                  <property name="propagate">True</property>
+                  <property name="row">0</property>
+                </layout>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Frame" id="playback_toolbar_frame">
+            <property name="borderwidth">2</property>
+            <property name="height">200</property>
+            <property name="width">200</property>
+            <layout manager="grid">
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">1</property>
+              <property name="sticky">n</property>
+              <property type="row" id="1" name="weight">1</property>
+            </layout>
+            <child>
+              <object class="ttk.Label" id="label1">
+                <property name="text" translatable="yes">Redraw</property>
+                <layout manager="grid">
+                  <property name="column">0</property>
+                  <property name="ipadx">3</property>
+                  <property name="propagate">True</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="play_button">
+                <property name="state">disabled</property>
+                <property name="text" translatable="yes">Play</property>
+                <layout manager="grid">
+                  <property name="column">1</property>
+                  <property name="propagate">True</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="pause_button">
+                <property name="state">disabled</property>
+                <property name="text" translatable="yes">Pause</property>
+                <layout manager="grid">
+                  <property name="column">2</property>
+                  <property name="propagate">True</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="clear_button">
+                <property name="text" translatable="yes">Clear</property>
+                <layout manager="grid">
+                  <property name="column">3</property>
+                  <property name="propagate">True</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="instruction_button">
+                <property name="text" translatable="yes">Instructions</property>
+                <layout manager="grid">
+                  <property name="column">4</property>
+                  <property name="propagate">True</property>
+                  <property name="row">1</property>
+                </layout>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Frame" id="frame2">
+            <property name="height">20</property>
+            <property name="width">200</property>
+            <layout manager="grid">
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">2</property>
+              <property name="sticky">n</property>
+            </layout>
+            <child>
+              <object class="ttk.Label" id="current_status">
+                <layout manager="pack">
+                  <property name="propagate">True</property>
+                  <property name="side">top</property>
+                </layout>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Frame" id="mw_fmain">
+            <property name="height">1000</property>
+            <property name="relief">flat</property>
+            <property name="width">1000</property>
+            <layout manager="grid">
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">3</property>
+              <property name="sticky">new</property>
+              <property type="row" id="1" name="weight">0</property>
+            </layout>
+            <child>
+              <object class="ttk.Frame" id="value_type_label">
+                <property name="height">200</property>
+                <property name="width">200</property>
+                <layout manager="pack">
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+                <child>
+                  <object class="ttk.Label" id="ap_pitch_label">
+                    <property name="foreground">blue</property>
+                    <property name="justify">center</property>
+                    <property name="text" translatable="yes">A/P 
+Pitch</property>
+                    <layout manager="pack">
+                      <property name="propagate">True</property>
+                      <property name="side">top</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Label" id="lateral_roll_label">
+                    <property name="foreground">red</property>
+                    <property name="justify">center</property>
+                    <property name="text" translatable="yes">Lateral
+Roll</property>
+                    <layout manager="pack">
+                      <property name="propagate">True</property>
+                      <property name="side">top</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Frame" id="main_container_area">
+                <property name="height">200</property>
+                <property name="width">200</property>
+                <layout manager="pack">
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+                <child>
+                  <object class="tk.Canvas" id="graph_canvas">
+                    <property name="background">#ffffff</property>
+                    <layout manager="pack">
+                      <property name="propagate">True</property>
+                      <property name="side">top</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Frame" id="value_label_type_frame">
+                <property name="borderwidth">2</property>
+                <property name="height">200</property>
+                <property name="relief">groove</property>
+                <property name="width">100</property>
+                <layout manager="pack">
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+                <child>
+                  <object class="ttk.Label" id="a_flex_image_label">
+                    <layout manager="pack">
+                      <property name="propagate">True</property>
+                      <property name="side">top</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Label" id="a_flex_label">
+                    <property name="justify">center</property>
+                    <property name="text" translatable="yes">A Flex</property>
+                    <layout manager="pack">
+                      <property name="propagate">True</property>
+                      <property name="side">top</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Label" id="p_ext_label">
+                    <property name="justify">center</property>
+                    <property name="text" translatable="yes">P Ext</property>
+                    <layout manager="pack">
+                      <property name="propagate">True</property>
+                      <property name="side">top</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Label" id="p_ext_image_label">
+                    <layout manager="pack">
+                      <property name="propagate">True</property>
+                      <property name="side">top</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Label" id="r_flex_image_label">
+                    <layout manager="pack">
+                      <property name="propagate">True</property>
+                      <property name="side">top</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Label" id="r_flex_label">
+                    <property name="justify">center</property>
+                    <property name="text" translatable="yes">R Flex</property>
+                    <layout manager="pack">
+                      <property name="propagate">True</property>
+                      <property name="side">top</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Label" id="l_flex_label">
+                    <property name="justify">center</property>
+                    <property name="text" translatable="yes">L Flex</property>
+                    <layout manager="pack">
+                      <property name="propagate">True</property>
+                      <property name="side">top</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object class="ttk.Label" id="l_flex_image_label">
+                    <layout manager="pack">
+                      <property name="propagate">True</property>
+                      <property name="side">top</property>
+                    </layout>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Frame" id="table_data_frame_container">
+                <property name="height">200</property>
+                <property name="relief">raised</property>
+                <property name="width">500</property>
+                <layout manager="pack">
+                  <property name="fill">both</property>
+                  <property name="propagate">True</property>
+                  <property name="side">right</property>
+                </layout>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Frame" id="mw_fbottom">
+            <property name="borderwidth">1</property>
+            <property name="height">200</property>
+            <property name="relief">raised</property>
+            <property name="width">200</property>
+            <layout manager="grid">
+              <property name="column">0</property>
+              <property name="propagate">True</property>
+              <property name="row">5</property>
+              <property name="sticky">sew</property>
+              <property type="row" id="1" name="weight">1</property>
+            </layout>
+            <child>
+              <object class="ttk.Label" id="label3">
+                <property name="text" translatable="yes">Gain</property>
+                <layout manager="pack">
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Combobox" id="gain_control_combo">
+                <property name="width">10</property>
+                <layout manager="pack">
+                  <property name="expand">false</property>
+                  <property name="fill">x</property>
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Separator" id="separator1">
+                <property name="orient">vertical</property>
+                <layout manager="pack">
+                  <property name="expand">false</property>
+                  <property name="fill">both</property>
+                  <property name="padx">5</property>
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Label" id="label4">
+                <property name="text" translatable="yes">Space bar to START/STOP</property>
+                <layout manager="pack">
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Separator" id="separator2">
+                <property name="orient">vertical</property>
+                <layout manager="pack">
+                  <property name="fill">both</property>
+                  <property name="padx">5</property>
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Label" id="label5">
+                <property name="text" translatable="yes">C to Clear</property>
+                <layout manager="pack">
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Separator" id="separator3">
+                <property name="orient">vertical</property>
+                <layout manager="pack">
+                  <property name="fill">both</property>
+                  <property name="padx">5</property>
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Label" id="label6">
+                <property name="text" translatable="yes">F5 to Save</property>
+                <layout manager="pack">
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Separator" id="separator4">
+                <property name="orient">vertical</property>
+                <layout manager="pack">
+                  <property name="fill">both</property>
+                  <property name="padx">5</property>
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Label" id="label7">
+                <property name="text" translatable="yes">I for Instructions</property>
+                <layout manager="pack">
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Separator" id="separator5">
+                <property name="orient">vertical</property>
+                <layout manager="pack">
+                  <property name="fill">both</property>
+                  <property name="padx">5</property>
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Combobox" id="scan_type_combo">
+                <property name="width">10</property>
+                <layout manager="pack">
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Separator" id="separator6">
+                <property name="orient">vertical</property>
+                <layout manager="pack">
+                  <property name="fill">both</property>
+                  <property name="padx">5</property>
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Label" id="label8">
+                <property name="text" translatable="yes">Speed</property>
+                <layout manager="pack">
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Combobox" id="speed_combo">
+                <property name="width">10</property>
+                <layout manager="pack">
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Separator" id="separator7">
+                <property name="orient">vertical</property>
+                <layout manager="pack">
+                  <property name="fill">both</property>
+                  <property name="padx">5</property>
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Label" id="label9">
+                <property name="text" translatable="yes">Filter</property>
+                <layout manager="pack">
+                  <property name="fill">y</property>
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Separator" id="separator8">
+                <property name="orient">vertical</property>
+                <layout manager="pack">
+                  <property name="fill">both</property>
+                  <property name="padx">5</property>
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Combobox" id="filter_combo">
+                <property name="width">10</property>
+                <layout manager="pack">
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Separator" id="separator9">
+                <property name="orient">vertical</property>
+                <layout manager="pack">
+                  <property name="fill">both</property>
+                  <property name="padx">5</property>
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+            <child>
+              <object class="ttk.Button" id="graph_button">
+                <property name="text" translatable="yes">Graph</property>
+                <layout manager="pack">
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="tk.Toplevel" id="graph_plot_window">
+    <property name="height">200</property>
+    <property name="takefocus">false</property>
+    <property name="width">200</property>
+    <child>
+      <object class="ttk.Frame" id="frame1">
+        <property name="height">200</property>
+        <property name="width">200</property>
+        <layout manager="grid">
+          <property name="column">0</property>
+          <property name="propagate">True</property>
+          <property name="row">0</property>
+          <property name="sticky">nsew</property>
+        </layout>
+        <child>
+          <object class="ttk.Frame" id="frame3">
+            <property name="height">10</property>
+            <property name="relief">raised</property>
+            <property name="width">200</property>
+            <layout manager="pack">
+              <property name="fill">x</property>
+              <property name="propagate">True</property>
+              <property name="side">top</property>
+            </layout>
+            <child>
+              <object class="ttk.Button" id="print_button">
+                <property name="text" translatable="yes">Print</property>
+                <layout manager="pack">
+                  <property name="expand">false</property>
+                  <property name="propagate">True</property>
+                  <property name="side">left</property>
+                </layout>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="tk.Canvas" id="graph_plot_canvas">
+            <layout manager="pack">
+              <property name="propagate">True</property>
+              <property name="side">left</property>
+            </layout>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Frame" id="table_data_frame_container_2">
+            <property name="height">200</property>
+            <property name="relief">raised</property>
+            <property name="width">200</property>
+            <layout manager="pack">
+              <property name="expand">true</property>
+              <property name="fill">both</property>
+              <property name="propagate">True</property>
+              <property name="side">left</property>
+            </layout>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

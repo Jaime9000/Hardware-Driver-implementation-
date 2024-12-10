@@ -1,15 +1,15 @@
 #include "windows_api.h"
-#include <stdio.h>
+#include "serialize_deserialize.h"
 #include "logger.h"
 
 static HANDLE watch_thread = NULL;
 static RedrawCallback global_callback = NULL;
 static volatile bool should_watch = false;
 
-ErrorCode check_python_bucket(void) {
+ErrorCode check_c_serialize_bucket(void) {
     if (!CreateDirectory(COORDINATES_FILE_DIR_PATH, NULL) && 
         GetLastError() != ERROR_ALREADY_EXISTS) {
-        log_error("Failed to create python bucket directory");
+        log_error("Failed to create c_wrapper_serialize_bucket directory");
         return ERROR_WRITE_FAILED;
     }
     return ERROR_NONE;
@@ -31,21 +31,15 @@ static void create_default_coordinates(CoordinatesData* coordinates) {
 ErrorCode load_coordinates(CoordinatesData* coordinates) {
     if (!coordinates) return ERROR_INVALID_PARAMETER;
     
-    ErrorCode result = check_python_bucket();
+    ErrorCode result = check_c_serialize_bucket();
     if (result != ERROR_NONE) return result;
 
-    FILE* file = fopen(COORDINATES_FILE_PATH, "rb");
-    if (!file) {
+    // Try to deserialize from file
+    result = deserialize_from_file(COORDINATES_FILE_PATH, coordinates, sizeof(CoordinatesData));
+    if (result != ERROR_NONE) {
+        // If file doesn't exist or can't be read, create default coordinates
         create_default_coordinates(coordinates);
         return save_coordinates(coordinates);
-    }
-
-    size_t read = fread(coordinates, sizeof(CoordinatesData), 1, file);
-    fclose(file);
-
-    if (read != 1) {
-        log_error("Failed to read coordinates file");
-        return ERROR_READ_FAILED;
     }
 
     return ERROR_NONE;
@@ -54,24 +48,11 @@ ErrorCode load_coordinates(CoordinatesData* coordinates) {
 ErrorCode save_coordinates(const CoordinatesData* coordinates) {
     if (!coordinates) return ERROR_INVALID_PARAMETER;
 
-    ErrorCode result = check_python_bucket();
+    ErrorCode result = check_c_serialize_bucket();
     if (result != ERROR_NONE) return result;
 
-    FILE* file = fopen(COORDINATES_FILE_PATH, "wb");
-    if (!file) {
-        log_error("Failed to open coordinates file for writing");
-        return ERROR_WRITE_FAILED;
-    }
-
-    size_t written = fwrite(coordinates, sizeof(CoordinatesData), 1, file);
-    fclose(file);
-
-    if (written != 1) {
-        log_error("Failed to write coordinates file");
-        return ERROR_WRITE_FAILED;
-    }
-
-    return ERROR_NONE;
+    // Serialize to file
+    return serialize_to_file(COORDINATES_FILE_PATH, coordinates, sizeof(CoordinatesData));
 }
 
 ErrorCode load_placement_values(bool is_left, int* x, int* y, int* size) {
@@ -108,25 +89,35 @@ ErrorCode make_k7_window_active(void) {
 }
 
 static DWORD WINAPI watch_directory(LPVOID _) {
-    HANDLE change = FindFirstChangeNotification(
-        COORDINATES_FILE_DIR_PATH,
-        TRUE,
-        FILE_NOTIFY_CHANGE_LAST_WRITE
-    );
-
-    if (change == INVALID_HANDLE_VALUE) {
-        log_error("Failed to setup directory watching");
-        return 1;
-    }
-
     while (should_watch) {
-        if (WaitForSingleObject(change, 100) == WAIT_OBJECT_0) {
-            if (global_callback) global_callback();
-            FindNextChangeNotification(change);
+        HANDLE change = FindFirstChangeNotification(
+            COORDINATES_FILE_DIR_PATH,
+            TRUE,
+            FILE_NOTIFY_CHANGE_LAST_WRITE | 
+            FILE_NOTIFY_CHANGE_FILE_NAME |
+            FILE_NOTIFY_CHANGE_DIR_NAME
+        );
+
+        if (change == INVALID_HANDLE_VALUE) {
+            Sleep(1000); // Wait before retry
+            continue;
+        }
+
+        DWORD wait_result;
+        while (should_watch && 
+               (wait_result = WaitForSingleObject(change, 100)) != WAIT_FAILED) {
+            if (wait_result == WAIT_OBJECT_0) {
+                if (global_callback) global_callback();
+                if (!FindNextChangeNotification(change)) break;
+            }
+        }
+
+        FindCloseChangeNotification(change);
+        
+        if (should_watch) {
+            Sleep(1000); // Wait before restarting watch
         }
     }
-
-    FindCloseChangeNotification(change);
     return 0;
 }
 
@@ -171,38 +162,4 @@ ErrorCode restart_file_watcher(void) {
     if (result != ERROR_NONE) return result;
     
     return setup_watch_event(global_callback);
-}
-
-// Update watch_directory to handle errors better
-static DWORD WINAPI watch_directory(LPVOID _) {
-    while (should_watch) {
-        HANDLE change = FindFirstChangeNotification(
-            COORDINATES_FILE_DIR_PATH,
-            TRUE,
-            FILE_NOTIFY_CHANGE_LAST_WRITE | 
-            FILE_NOTIFY_CHANGE_FILE_NAME |
-            FILE_NOTIFY_CHANGE_DIR_NAME
-        );
-
-        if (change == INVALID_HANDLE_VALUE) {
-            Sleep(1000); // Wait before retry
-            continue;
-        }
-
-        DWORD wait_result;
-        while (should_watch && 
-               (wait_result = WaitForSingleObject(change, 100)) != WAIT_FAILED) {
-            if (wait_result == WAIT_OBJECT_0) {
-                if (global_callback) global_callback();
-                if (!FindNextChangeNotification(change)) break;
-            }
-        }
-
-        FindCloseChangeNotification(change);
-        
-        if (should_watch) {
-            Sleep(1000); // Wait before restarting watch
-        }
-    }
-    return 0;
 }

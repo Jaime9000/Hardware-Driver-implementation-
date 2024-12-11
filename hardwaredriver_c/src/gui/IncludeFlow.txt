@@ -31,7 +31,60 @@
             scrollable_frame.h/c
                         |-->commons.h
 
+---Files that use pygubu(builder):
+    -->graph_plot_window.py
+    -->sweep_data_ui_reusable.py
+    -->data_class.py
+    -->graph.py
+    -->scrollable_frame.py
+            --> all of the other ui files should not execute TCL/TK commands directly
+                    -->instead they should pass data to one of the files that uses the builder directly
+                            -->where the correct command will then be executed refrenceing the passed data
+
+
+graph.py "builder.get_object('')" element names:
+    -->'gain_control_combo' bind to <<ComboboxSelected>>
+    -->'scan_type_combo' bind to <<ComboboxSelected>>
+    -->'speed_combo' bind to <<ComboboxSelected>>
+    -->'filter_combo' bind to <<ComboboxSelected>>
+    -->'pause_button' 
+    -->'play_button'
+    -->'clear_button'
+    -->'start_record_button'
+    -->'stop_record_button'
+    -->'save_record_button'
+    -->instructions_button'
+    -->'graph_button'
+    --> look at this code snipped: if not self.__picture_windows_only:
+            self.__master.bind_all('<KeyRelease>', self.__key_press_event)
+
+
+
 
 Once SweepDataUIReusable.h/c is done, we can update mode_sweep.h/c, mode_44_sweep_scan.h/c,
 then we can implement: --> mode_change_notification.h/c, --> modes.h/c
 -->Finally we can implement main.h/c and then we can package.  
+
+here is the data_flow for namespace from mode_sweep -->graph:
+
+    mode_sweep.c:
+        NamespaceOptions* local_namespace = namespace_options_create()
+        |
+        v
+    sweep_data_ui_reusable.c:
+        DataClass* data_class = data_class_create(builder, local_namespace, data_queue)
+        Graph* graph = graph_create(..., data_class, ..., local_namespace)
+        |
+        v
+    graph.c:
+        // In graph_animate():
+        NamespaceOptions* namespace = data_class_get_namespace(graph->data_class)
+
+
+
+
+
+------Updates for version 2.0------:
+--> implement a builder.h/c class that will act as an abstracted layer
+    --> allowing for the ui to be edited/updated without putting the commands
+    --> directly in the code of each ui file. 

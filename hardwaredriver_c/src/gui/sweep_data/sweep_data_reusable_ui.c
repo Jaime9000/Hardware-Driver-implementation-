@@ -10,9 +10,7 @@
 
 #define WINDOW_TITLE "K7-Postural Range of Motion"
 #define TCL_INIT_SCRIPT \
-    "package require Tk\n" \
-    "wm title . {%s}\n" \
-    "wm protocol . WM_DELETE_WINDOW {exit}\n"
+    "package require Tk\n"
 
 static ErrorCode initialize_tcl_tk(PlotAppReusable* app) {
     app->interp = Tcl_CreateInterp();
@@ -31,48 +29,31 @@ static ErrorCode initialize_tcl_tk(PlotAppReusable* app) {
         return ERROR_TCL_INIT;
     }
 
+    // Initialize Tk with basic script
     char init_script[256];
-    snprintf(init_script, sizeof(init_script), TCL_INIT_SCRIPT, WINDOW_TITLE);
+    snprintf(init_script, sizeof(init_script), TCL_INIT_SCRIPT);
     if (Tcl_Eval(app->interp, init_script) != TCL_OK) {
         log_error("Failed to run initialization script: %s", Tcl_GetStringResult(app->interp));
         return ERROR_TCL_EVAL;
     }
 
-    return ERROR_NONE;
-}
+    // Create the UI
+    create_ui(app->interp);
 
-static ErrorCode setup_ui_components(PlotAppReusable* app) {
-    // Create main container frames
-    const char* create_frames_cmd = 
-        "frame .container\n"
-        "frame .container.graph\n"
-        "frame .container.controls\n"
-        "frame .container.table\n"
-        "pack .container -fill both -expand 1\n"
-        "pack .container.graph -side left -fill both -expand 1\n"
-        "pack .container.controls -side right -fill y\n"
-        "pack .container.table -side bottom -fill x\n";
-    
-    if (Tcl_Eval(app->interp, create_frames_cmd) != TCL_OK) {
-        log_error("Failed to create main frames");
+    // Now set window properties
+    char window_cmd[256];
+    snprintf(window_cmd, sizeof(window_cmd), 
+        "wm title .mainwindow {%s}\n"
+        "wm protocol .mainwindow WM_DELETE_WINDOW {exit}",
+        WINDOW_TITLE);
+    if (Tcl_Eval(app->interp, window_cmd) != TCL_OK) {
+        log_error("Failed to set window properties: %s", Tcl_GetStringResult(app->interp));
         return ERROR_TCL_EVAL;
     }
 
-    // Create scrollable frame for table
-    app->scrollable_frame = scrollable_frame_create(app->interp, ".container.table");
-    if (!app->scrollable_frame) {
-        log_error("Failed to create scrollable frame");
-        return ERROR_MEMORY_ALLOCATION;
-    }
-
-    ErrorCode error = scrollable_frame_initialize(app->scrollable_frame);
-    if (error != ERROR_NONE) {
-        log_error("Failed to initialize scrollable frame");
-        return error;
-    }
-
     return ERROR_NONE;
 }
+
 
 static ErrorCode setup_value_labels(PlotAppReusable* app) {
     // Create label widgets
@@ -150,7 +131,11 @@ ErrorCode plot_app_reusable_create(PlotAppReusable** app,
     new_app->data_queue = data_queue;
     new_app->command_queue = command_queue;
     new_app->namespace = namespace;
-    new_app->running = false;
+    new_app->table_filter_callback = plot_app_reusable_table_filter_callback;
+    new_app->cms_callback = plot_app_reusable_playback_cms_window;
+    new_app->playback_callback = plot_app_reusable_playback_callback;
+
+    new_app->main_window = ".mainwindow";
 
     // Initialize Tcl/Tk
     ErrorCode error = initialize_tcl_tk(new_app);
@@ -161,7 +146,7 @@ ErrorCode plot_app_reusable_create(PlotAppReusable** app,
 
     // Setup initial patient path
     char first_name[256], last_name[256];
-    error = namespace_options_get_patient_name(namespace, first_name, last_name);
+    error = namespace_options_get_patient_name(new_app->namespace, first_name, last_name);
     if (error != ERROR_NONE) {
         Tcl_DeleteInterp(new_app->interp);
         free(new_app);
@@ -169,7 +154,7 @@ ErrorCode plot_app_reusable_create(PlotAppReusable** app,
     }
 
     PathCombine(new_app->patient_path, 
-               namespace_options_get_root_dir(namespace),
+               namespace_options_get_root_dir(new_app->namespace),
                last_name);
     PathAppend(new_app->patient_path, first_name);
     PathAppend(new_app->patient_path, "sweep_data");
@@ -178,24 +163,37 @@ ErrorCode plot_app_reusable_create(PlotAppReusable** app,
     // Create directories if they don't exist
     SHCreateDirectoryEx(NULL, new_app->patient_path, NULL);
 
-    // Setup UI components
-    error = setup_ui_components(new_app);
-    if (error != ERROR_NONE) {
-        Tcl_DeleteInterp(new_app->interp);
-        free(new_app);
-        return error;
+    // Create DataClass instance
+    new_app->data_class = data_class_create(new_app->interp, 
+                                          ".mainwindow.mw_fcontainer",  // builder_path
+                                          new_app->namespace->path,
+                                          new_app->data_queue);
+    if (!new_app->data_class) {
+        plot_app_reusable_destroy(new_app);
+        return ERROR_OUT_OF_MEMORY;
     }
 
-    error = setup_value_labels(new_app);
-    if (error != ERROR_NONE) {
-        scrollable_frame_destroy(new_app->scrollable_frame);
-        Tcl_DeleteInterp(new_app->interp);
-        free(new_app);
-        return error;
+    // Create Graph instance
+    new_app->graph = graph_create(new_app->interp,
+                                new_app->main_window,
+                                ".mainwindow.mw_fcontainer.mw_fmain.main_container_area.graph_canvas",
+                                new_app->data_class,
+                                new_app->table_filter_callback,
+                                new_app->patient_path,
+                                new_app->namespace->patient_name,
+                                new_app->cms_callback,
+                                new_app->namespace);
+    if (!new_app->graph) {
+        plot_app_reusable_destroy(new_app);
+        return ERROR_OUT_OF_MEMORY;
     }
 
     *app = new_app;
     return ERROR_NONE;
+}
+
+ErrorCode plot_app_reusable_table_filter_callback(PlotAppReusable* app, const char* scan_filter_type) {
+    return data_table_repopulate_data(app->table, scan_filter_type);
 }
 
 // Destructor implementation
@@ -226,67 +224,46 @@ void plot_app_reusable_destroy(PlotAppReusable* app) {
 // Core functionality implementation
 ErrorCode plot_app_reusable_run(PlotAppReusable* app) {
     if (!app || !app->interp) return ERROR_INVALID_PARAMETER;
-
-    // Start Tk event loop
-    while (app->running) {
-        while (Tcl_DoOneEvent(TCL_ALL_EVENTS | TCL_DONT_WAIT)) {
-            // Process Tcl/Tk events
-        }
-
-        // Process data queue
-        double data[2];
-        size_t data_size = sizeof(data);
-        ErrorCode error = data_queue_get(app->data_queue, data, &data_size);
-        if (error == ERROR_NONE) {
-            // Update UI with new data
-            char cmd[256];
-            snprintf(cmd, sizeof(cmd),
-                    ".container.controls.ap_pitch_label configure -text \"A/P Pitch: %.2f\"\n"
-                    ".container.controls.lateral_roll_label configure -text \"Lateral Roll: %.2f\"",
-                    data[0], data[1]);
-            Tcl_Eval(app->interp, cmd);
-        }
-
-        // Process command queue
-        char command[256];
-        size_t command_size = sizeof(command);
-        error = data_queue_get(app->command_queue, (double*)command, &command_size);
-        if (error == ERROR_NONE) {
-            if (strcmp(command, "stop") == 0) {
-                app->running = false;
-            }
-        }
-
-        Sleep(10);  // Prevent CPU overuse
-    }
-
+    Tk_MainLoop();
     return ERROR_NONE;
 }
 
-ErrorCode plot_app_reusable_stop(PlotAppReusable* app) {
+ErrorCode plot_app_reusable_close_window(PlotAppReusable* app) {
     if (!app) return ERROR_INVALID_PARAMETER;
+    graph_stop(app->graph);
     
-    app->running = false;
     return ERROR_NONE;
 }
 
 ErrorCode plot_app_reusable_setup_table(PlotAppReusable* app) {
-    if (!app || !app->scrollable_frame) return ERROR_INVALID_PARAMETER;
+    // Create scrollable frame using existing UI structure
+    app->scrollable_frame = scrollable_frame_create(app->interp, 
+        ".mainwindow.mw_fcontainer.mw_fmain.table_data_frame_container");
+    if (!app->scrollable_frame) {
+        log_error("Failed to create scrollable frame");
+        return ERROR_MEMORY_ALLOCATION;
+    }
 
-    // Create table in scrollable frame
-    const char* frame_path = scrollable_frame_get_path(app->scrollable_frame);
-    if (!frame_path) return ERROR_INVALID_PARAMETER;
+    ErrorCode error = scrollable_frame_initialize(app->scrollable_frame);
+    if (error != ERROR_NONE) {
+        log_error("Failed to initialize scrollable frame");
+        return error;
+    }
 
-    // Table creation commands
-    char cmd[512];
-    snprintf(cmd, sizeof(cmd),
-             "frame %s.table\n"
-             "pack %s.table -fill both -expand 1",
-             frame_path, frame_path);
-
-    if (Tcl_Eval(app->interp, cmd) != TCL_OK) {
-        log_error("Failed to create table frame");
-        return ERROR_TCL_EVAL;
+    //VERIFY DATA TABLE FILE AFTER THIS,LOOK AT root param, Colm, row init, Observer implementation in C
+    // Create the table instance
+    error = data_table_create(
+        &app->table,
+        app->interp,
+        app->patient_path,
+        app->playback_callback,
+        1,  // column
+        2,  // row
+        NULL  // check_callback
+    );
+    if (error != ERROR_NONE) {
+        log_error("Failed to create data table");
+        return error;
     }
 
     return ERROR_NONE;
@@ -416,6 +393,8 @@ ErrorCode plot_app_reusable_playback_cms_window(PlotAppReusable* app,
 }
 
 // Timer callback for processing command queue
+/* Prehaps we will need a function similar to this in modes_sweep.c for the intial timer setup in modes_Sweep.c but
+i'm not sure this function defeniiton is pretty unique. 
 static void CALLBACK command_queue_timer_proc(HWND hwnd, 
                                             UINT message, 
                                             UINT_PTR timer_id, 
@@ -442,62 +421,33 @@ static void CALLBACK command_queue_timer_proc(HWND hwnd,
         }
     }
 }
+*/
 
-// Helper function to update UI labels with new angles
-static ErrorCode update_angle_labels(PlotAppReusable* app, double front_angle, double side_angle) {
-    if (!app || !app->interp) return ERROR_INVALID_PARAMETER;
-
-    char cmd[256];
-    snprintf(cmd, sizeof(cmd),
-             "%s configure -text \"Front: %.2f°\"\n"
-             "%s configure -text \"Side: %.2f°\"",
-             app->ap_pitch_label, front_angle,
-             app->lateral_roll_label, side_angle);
-
-    if (Tcl_Eval(app->interp, cmd) != TCL_OK) {
-        log_error("Failed to update angle labels");
-        return ERROR_TCL_EVAL;
-    }
-
-    return ERROR_NONE;
-}
-
-// Helper function to process incoming data
-static ErrorCode process_data_queue(PlotAppReusable* app) {
+static ErrorCode process_command_queue(PlotAppReusable* app) {
     if (!app) return ERROR_INVALID_PARAMETER;
 
-    double angles[2];  // [front_angle, side_angle]
-    size_t data_size = sizeof(angles);
+    // Check command queue (like Python's __watch_for_command__)
+    double command_data[3];
+    size_t data_size = sizeof(command_data);
     
-    ErrorCode error = data_queue_get(app->data_queue, angles, &data_size);
+    ErrorCode error = data_queue_get(app->command_queue, command_data, &data_size);
     if (error == ERROR_NONE) {
-        error = update_angle_labels(app, angles[0], angles[1]);
-        
-        // Update graph if available
-        if (error == ERROR_NONE && app->graph) {
-            error = graph_update_data(app->graph, angles[0], angles[1]);
+        int command = (int)command_data[0];
+        if (command == 1) {  // "start"
+            app->picture_windows_only = (bool)command_data[1];
+            app->tilt_enabled = (bool)command_data[2];
+            graph_start(app->graph, app->picture_windows_only, app->tilt_enabled);
+        } else if (command == 0) {  // "stop"
+            graph_stop(app->graph);
         }
     }
 
+    // Schedule next check (like Python's after())
+    Tcl_CreateTimerHandler(100, process_command_queue_callback, app);
     return error;
 }
 
-// Main event processing loop
-ErrorCode plot_app_reusable_process_events(PlotAppReusable* app) {
-    if (!app) return ERROR_INVALID_PARAMETER;
-
-    while (app->running) {
-        // Process Tcl/Tk events
-        while (Tcl_DoOneEvent(TCL_ALL_EVENTS | TCL_DONT_WAIT)) {}
-
-        // Process data queue
-        ErrorCode error = process_data_queue(app);
-        if (error != ERROR_NONE && error != ERROR_QUEUE_EMPTY) {
-            log_warning("Error processing data queue: %d", error);
-        }
-
-        Sleep(10);  // Prevent CPU overuse
-    }
-
-    return ERROR_NONE;
+static void process_command_queue_callback(ClientData client_data) {
+    PlotAppReusable* app = (PlotAppReusable*)client_data;
+    process_command_queue(app);
 }

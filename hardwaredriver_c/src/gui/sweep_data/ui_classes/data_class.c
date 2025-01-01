@@ -861,11 +861,11 @@ const SavedData* data_class_get_saved_data(const DataClass* data) {
     return data ? data->saved_data : NULL;
 }
 
-const DataPoints* data_class_get_frontal_points(const DataClass* data) {
+DataPoints* data_class_get_frontal_points(DataClass* data) {
     return data ? &data->frontal_points : NULL;
 }
 
-const DataPoints* data_class_get_sagittal_points(const DataClass* data) {
+DataPoints* data_class_get_sagittal_points(DataClass* data) {
     return data ? &data->sagittal_points : NULL;
 }
 

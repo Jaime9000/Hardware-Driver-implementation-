@@ -80,11 +80,17 @@ here is the data_flow for namespace from mode_sweep -->graph:
         // In graph_animate():
         NamespaceOptions* namespace = data_class_get_namespace(graph->data_class)
 
-
-
+-----Necissary Updates/checks 12/18/24----:
+-->implement get/set exit_thread in namespace_options.h/c -->then verify use in graph.c
+-->check graph_animate_playback() in graph.c
+--> finish sweep_data_ui_reusable.h/c implementation 
+--> mode_sweep.h/c, mode_44_sweep_scan.h/c, mode_change_notification.h/c, --> modes.h/c
+--> main.h/c, --> PACKAGE 
 
 
 ------Updates for version 2.0------:
 --> implement a builder.h/c class that will act as an abstracted layer
     --> allowing for the ui to be edited/updated without putting the commands
     --> directly in the code of each ui file. 
+
+

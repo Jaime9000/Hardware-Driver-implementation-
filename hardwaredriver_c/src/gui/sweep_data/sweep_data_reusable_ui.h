@@ -11,14 +11,12 @@
 #include "serialize_deserialize.h"
 #include "image_helpers.h"
 #include "scrollable_frame.h"
+#include "data_table.h"
+#include "data_class.h"
+#include "graph.h"
 
 #define DATA_VERSION "1.2"
 #define MAX_PATH_LENGTH 1024
-
-// Forward declarations
-typedef struct DataTable DataTable;
-typedef struct DataClass DataClass;
-typedef struct Graph Graph;
 
 typedef enum {
     RECORDING_MODE_NONE,
@@ -32,7 +30,7 @@ typedef struct {
     ScrollableFrame* scrollable_frame;
     
     // Windows Components
-    HWND main_window;
+    Tk_Window main_window;
     DataQueue* data_queue;
     DataQueue* command_queue;
     NamespaceOptions* namespace;
@@ -41,6 +39,9 @@ typedef struct {
     DataTable* table;
     DataClass* data_class;
     Graph* graph;
+
+    // Add nnuilder/UI components
+    char* resource_path;
     
     // Path information
     char patient_path[MAX_PATH_LENGTH];
@@ -53,9 +54,15 @@ typedef struct {
     char* l_flex_label;
     char* ap_pitch_label;
     char* lateral_roll_label;
+
+    //callbacks
+    FilterTableCallback* table_filter_callback;
+    CmsCallback* cms_callback;
+    PlaybackCallback* playback_callback;    
+    //cms_callback  
     
     // State
-    bool running;
+    ///bool running;
     bool picture_windows_only;
     bool tilt_enabled;
 } PlotAppReusable;
@@ -70,17 +77,51 @@ void plot_app_reusable_destroy(PlotAppReusable* app);
 // Core functionality
 ErrorCode plot_app_reusable_run(PlotAppReusable* app);
 ErrorCode plot_app_reusable_stop(PlotAppReusable* app);
+
+/**
+ * Sets up the data table component
+ * @param app Pointer to PlotAppReusable instance
+ * @return ErrorCode indicating success or failure
+ */
 ErrorCode plot_app_reusable_setup_table(PlotAppReusable* app);
+
+/**
+ * Sets up value labels with images
+ * @param app Pointer to PlotAppReusable instance
+ * @return ErrorCode indicating success or failure
+ */
 ErrorCode plot_app_reusable_setup_value_labels(PlotAppReusable* app);
 
-// Playback functions
+
+// Path management
+ErrorCode plot_app_reusable_change_patient_path(PlotAppReusable* app, const char* new_path);
+
+/**
+ * Handles playback of recorded data
+ * @param app Pointer to PlotAppReusable instance
+ * @param file_name Name of file to playback
+ * @return ErrorCode indicating success or failure
+ */
 ErrorCode plot_app_reusable_playback_callback(PlotAppReusable* app, const char* file_name);
+
+/**
+ * Handles CMS window playback
+ * @param app Pointer to PlotAppReusable instance
+ * @param extra_filter Additional filter parameters
+ * @param with_summary Include summary flag
+ * @param fast_replay Fast replay flag
+ * @return ErrorCode indicating success or failure
+ */
 ErrorCode plot_app_reusable_playback_cms_window(PlotAppReusable* app, 
                                               const char* extra_filter,
                                               bool with_summary,
                                               bool fast_replay);
 
-// Path management
-ErrorCode plot_app_reusable_change_patient_path(PlotAppReusable* app, const char* new_path);
+/**
+ * Main event processing loop
+ * @param app Pointer to PlotAppReusable instance
+ * @return ErrorCode indicating success or failure
+ */
+ErrorCode plot_app_reusable_process_events(PlotAppReusable* app);
 
 #endif // SWEEP_DATA_UI_REUSABLE_H

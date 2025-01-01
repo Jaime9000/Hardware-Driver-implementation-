@@ -92,7 +92,7 @@ GraphPlotWindow* graph_plot_window_create(Tcl_Interp* interp,
     init_plot_data(&window->l_flex);
 
     // Create UI using create_ui (similar to Python's builder.add_from_file)
-    create_ui(interp);
+    //create_ui(interp);
 
     // Get reference to graph_plot_window element and set its title
     char cmd[256];
@@ -120,7 +120,7 @@ GraphPlotWindow* graph_plot_window_create(Tcl_Interp* interp,
         interp, 
         patient_path, 
         NULL,  // playback_callback 
-        0, 0,  // column, row
+        1, 2,  // column, row
         graph_plot_window_populate_data  // on_check callback
     );
     if (!window->table) {

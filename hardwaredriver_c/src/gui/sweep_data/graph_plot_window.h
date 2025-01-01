@@ -12,7 +12,7 @@
 #define WINDOW_NAME "Graph Plot"
 #define FONT_SIZE 6
 #define MAX_DATA_POINTS 1000
-
+/*we need to update this file to work with plplot stream and custom tk widget directly instead of using xwin */
 typedef struct {
     PLFLT* x;
     PLFLT* y;

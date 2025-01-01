@@ -189,7 +189,7 @@ static void draw_callback(ClientData client_data) {
 
 PictureWindowReusable* picture_window_reusable_create(Tcl_Interp* interp,
                                                      const char* patient_name,
-                                                     const char* main_window_path,
+                                                     const char* name_window_path,
                                                      bool is_frontal,
                                                      ImageWindowOptions* options) {
     PictureWindowReusable* window = calloc(1, sizeof(PictureWindowReusable));
@@ -204,14 +204,14 @@ PictureWindowReusable* picture_window_reusable_create(Tcl_Interp* interp,
     // Create toplevel window
     char cmd[512];
     snprintf(cmd, sizeof(cmd), "toplevel %s; wm title %s {%s}", 
-             main_window_path, main_window_path, title);
+             name_window_path, name_window_path, title);
     if (Tcl_Eval(interp, cmd) != TCL_OK) {
         picture_window_reusable_destroy(window);
         return NULL;
     }
 
     // Initialize base PictureWindowFunctions
-    window->base = picture_window_functions_create(interp, is_frontal, patient_name, main_window_path);
+    window->base = picture_window_functions_create(interp, is_frontal, patient_name, name_window_path);
     if (!window->base) {
         picture_window_reusable_destroy(window);
         return NULL;
@@ -220,13 +220,13 @@ PictureWindowReusable* picture_window_reusable_create(Tcl_Interp* interp,
     window->interp = interp;
     window->is_frontal = is_frontal;
     window->patient_name = strdup(patient_name);
-    window->window_path = strdup(main_window_path);
+    window->window_path = strdup(name_window_path);
     window->image_options = options;
     window->is_running = false;
     window->window_hidden = false;
 
     // Create paths for UI elements
-    size_t path_len = strlen(main_window_path) + 32;
+    size_t path_len = strlen(name_window_path) + 32;
     window->canvas_path = malloc(path_len);
     window->frame_path = malloc(path_len);
     window->max_label_path = malloc(path_len);
@@ -239,11 +239,11 @@ PictureWindowReusable* picture_window_reusable_create(Tcl_Interp* interp,
         return NULL;
     }
 
-    snprintf(window->canvas_path, path_len, "%s.canvas", main_window_path);
-    snprintf(window->frame_path, path_len, "%s.frame", main_window_path);
-    snprintf(window->max_label_path, path_len, "%s.frame.max_label", main_window_path);
-    snprintf(window->current_label_path, path_len, "%s.frame.current_label", main_window_path);
-    snprintf(window->min_label_path, path_len, "%s.frame.min_label", main_window_path);
+    snprintf(window->canvas_path, path_len, "%s.canvas", name_window_path);
+    snprintf(window->frame_path, path_len, "%s.frame", name_window_path);
+    snprintf(window->max_label_path, path_len, "%s.frame.max_label", name_window_path);
+    snprintf(window->current_label_path, path_len, "%s.frame.current_label", name_window_path);
+    snprintf(window->min_label_path, path_len, "%s.frame.min_label", name_window_path);
 
     // Create UI elements
     if (create_ui_elements(window) != ERROR_NONE) {

@@ -128,8 +128,8 @@ bool data_class_is_playback(const DataClass* data);
 bool data_class_is_paused(const DataClass* data);
 SYSTEMTIME data_class_get_recording_start_time(const DataClass* data);
 const SavedData* data_class_get_saved_data(const DataClass* data);
-const DataPoints* data_class_get_frontal_points(const DataClass* data);
-const DataPoints* data_class_get_sagittal_points(const DataClass* data);
+DataPoints* data_class_get_frontal_points(DataClass* data);
+DataPoints* data_class_get_sagittal_points(DataClass* data);
 double data_class_get_playback_speed(const DataClass* data);
 const char* data_class_get_scan_type(const DataClass* data);
 

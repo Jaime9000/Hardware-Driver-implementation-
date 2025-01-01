@@ -13,7 +13,7 @@ typedef struct PictureWindowReusable PictureWindowReusable;
 // Constructor/Destructor
 PictureWindowReusable* picture_window_reusable_create(Tcl_Interp* interp,
                                                      const char* patient_name,
-                                                     const char* main_window_path,
+                                                     const char* name_window_path,
                                                      bool is_frontal,
                                                      ImageWindowOptions* options);
 void picture_window_reusable_destroy(PictureWindowReusable* window);

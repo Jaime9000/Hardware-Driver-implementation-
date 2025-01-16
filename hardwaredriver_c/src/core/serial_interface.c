@@ -33,6 +33,10 @@ SerialInterface* serial_interface_create(Config* config) {
     interface->baud_rate = FAST_BAUD_RATE;
     interface->logger = config->logger;
 
+    // Initialize command maps
+    interface->command_maps = NULL;
+    interface->command_count = 0;
+
     // Get port name from config
     const char* port_name = config_get_port_name(config);
     if (!port_name && config->port_auto_detect) {
@@ -73,6 +77,9 @@ void serial_interface_destroy(SerialInterface* interface) {
         if (interface->is_connected) {
             serial_interface_close(interface);
         }
+        
+        // Free command maps
+        free(interface->command_maps);
         
         LeaveCriticalSection(&interface->mutex);
         DeleteCriticalSection(&interface->mutex);
@@ -166,6 +173,13 @@ static ErrorCode validate_interface(SerialInterface* interface) {
     if (!interface) {
         log_error("Null interface pointer");
         return ERROR_INVALID_PARAMETER;
+    }
+
+    // Check if we can actually communicate with the serial port
+    DCB dcb = {0};
+    if (!GetCommState(interface->handle, &dcb)) {
+        log_error("Serial communication not available");
+        return ERROR_SERIAL_EXCEPTION;  // Use new error code here
     }
 
     if (!interface->is_connected) {
@@ -322,6 +336,13 @@ ErrorCode serial_interface_usb_control_on(SerialInterface* interface) {
         return ERROR_WRITE_FAILED;
     }
 
+    if (!FlushFileBuffers(interface->handle)) {
+        DWORD error = GetLastError();
+        log_error("Failed to flush buffers. System error: %lu", error);
+        LeaveCriticalSection(&interface->mutex);
+        return ERROR_WRITE_FAILED;
+    }
+
     LeaveCriticalSection(&interface->mutex);
     return ERROR_NONE;
 }
@@ -338,6 +359,13 @@ ErrorCode serial_interface_usb_control_off(SerialInterface* interface) {
     if (!EscapeCommFunction(interface->handle, CLRRTS)) {
         DWORD error = GetLastError();
         log_error("Failed to clear RTS. System error: %lu", error);
+        LeaveCriticalSection(&interface->mutex);
+        return ERROR_WRITE_FAILED;
+    }
+
+    if (!FlushFileBuffers(interface->handle)) {
+        DWORD error = GetLastError();
+        log_error("Failed to flush buffers. System error: %lu", error);
         LeaveCriticalSection(&interface->mutex);
         return ERROR_WRITE_FAILED;
     }
@@ -362,6 +390,13 @@ ErrorCode serial_interface_usb_data_on(SerialInterface* interface) {
         return ERROR_WRITE_FAILED;
     }
 
+    if (!FlushFileBuffers(interface->handle)) {
+        DWORD error = GetLastError();
+        log_error("Failed to flush buffers. System error: %lu", error);
+        LeaveCriticalSection(&interface->mutex);
+        return ERROR_WRITE_FAILED;
+    }
+
     LeaveCriticalSection(&interface->mutex);
     return ERROR_NONE;
 }
@@ -378,6 +413,13 @@ ErrorCode serial_interface_usb_data_off(SerialInterface* interface) {
     if (!EscapeCommFunction(interface->handle, CLRDTR)) {
         DWORD error = GetLastError();
         log_error("Failed to clear DTR. System error: %lu", error);
+        LeaveCriticalSection(&interface->mutex);
+        return ERROR_WRITE_FAILED;
+    }
+
+    if (!FlushFileBuffers(interface->handle)) {
+        DWORD error = GetLastError();
+        log_error("Failed to flush buffers. System error: %lu", error);
         LeaveCriticalSection(&interface->mutex);
         return ERROR_WRITE_FAILED;
     }
@@ -766,6 +808,73 @@ ErrorCode serial_interface_get_equipment_byte(SerialInterface* interface, unsign
 
 ErrorCode serial_interface_check_connection(SerialInterface* interface) {
     return validate_interface(interface);
+}
+
+ErrorCode serial_interface_execute_command(SerialInterface* interface, 
+                                         const uint8_t* command,
+                                         size_t command_size,
+                                         ModeManager* mode_manager) {
+    if (!interface || !command || !mode_manager) {
+        set_last_error(ERROR_INVALID_PARAMETER);
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    // Parse command and return size
+    size_t return_size = 0;
+    IOCommand cmd;
+    if (parse_command_and_size(command, command_size, &cmd, &return_size) != ERROR_NONE) {
+        return ERROR_INVALID_COMMAND;
+    }
+
+    EnterCriticalSection(&interface->mutex);
+
+    // Look up command in map
+    for (size_t i = 0; i < interface->command_count; i++) {
+        if (interface->command_maps[i].command == cmd) {
+            uint8_t* data = NULL;
+            size_t data_size = 0;
+            ErrorCode result = mode_manager_execute_command(mode_manager, 
+                                                         cmd,
+                                                         return_size,
+                                                         &data,
+                                                         &data_size);
+            LeaveCriticalSection(&interface->mutex);
+            return result;
+        }
+    }
+
+    // If no handler found, just write the command
+    ErrorCode result = serial_interface_write_data(interface, command, command_size);
+    LeaveCriticalSection(&interface->mutex);
+    return result;
+}
+
+ErrorCode serial_interface_register_command(SerialInterface* interface, 
+                                          IOCommand command,
+                                          ModeExecuteFunc execute_func) {
+    if (!interface || !execute_func) {
+        set_last_error(ERROR_INVALID_PARAMETER);
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    EnterCriticalSection(&interface->mutex);
+
+    // Grow array if needed
+    size_t new_count = interface->command_count + 1;
+    CommandMap* new_maps = realloc(interface->command_maps, new_count * sizeof(CommandMap));
+    if (!new_maps) {
+        LeaveCriticalSection(&interface->mutex);
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    // Add the new command
+    interface->command_maps = new_maps;
+    interface->command_maps[interface->command_count].command = command;
+    interface->command_maps[interface->command_count].execute_func = execute_func;
+    interface->command_count = new_count;
+
+    LeaveCriticalSection(&interface->mutex);
+    return ERROR_NONE;
 }
 
 

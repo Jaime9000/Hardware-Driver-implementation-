@@ -48,6 +48,8 @@ const char* get_error_string(ErrorCode code) {
             return "Break condition detected on serial port";
         case ERROR_BUFFER_EMPTY: 
             return "No data available in buffer";
+        case ERROR_SERIAL_EXCEPTION:
+            return "Serial communication exception";
         default: 
             return "Unknown error";
     }

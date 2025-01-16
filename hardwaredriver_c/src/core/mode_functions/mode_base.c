@@ -186,3 +186,14 @@ uint8_t mode_base_get_device_byte(const ModeBase* mode) {
 bool mode_base_is_handshake_established(const ModeBase* mode) {
     return mode ? mode->handshake_established : false;
 }
+
+bool mode_base_is_sweep(const ModeBase* mode) {
+    if (!mode || !mode->vtable) {
+        return false;
+    }
+    
+    int mode_num = mode->vtable->get_mode_number(mode);
+    return (mode_num == MODE_44_SWEEP || 
+            mode_num == MODE_57_SWEEP ||
+            mode_num == MODE_44_RAW_SWEEP_NO_IMAGE);
+}

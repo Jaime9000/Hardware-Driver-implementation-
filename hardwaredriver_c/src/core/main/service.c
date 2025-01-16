@@ -18,9 +18,28 @@ ServiceContext* service_create(Config* config) {
     service->stop_event = CreateEvent(NULL, TRUE, FALSE, NULL);
     service->is_running = false;
     
+    // Create process manager first
+    service->process_manager = process_manager_create(NULL);
+    if (!service->process_manager) {
+        CloseHandle(service->stop_event);
+        free(service);
+        return NULL;
+    }
+
     // Create serial interface
     service->serial_interface = serial_interface_create(config);
     if (!service->serial_interface) {
+        process_manager_destroy(service->process_manager);
+        CloseHandle(service->stop_event);
+        free(service);
+        return NULL;
+    }
+
+    // Create mode manager (our equivalent of Modes)
+    service->mode_manager = mode_manager_create(service->serial_interface, service->process_manager);
+    if (!service->mode_manager) {
+        serial_interface_destroy(service->serial_interface);
+        process_manager_destroy(service->process_manager);
         CloseHandle(service->stop_event);
         free(service);
         return NULL;

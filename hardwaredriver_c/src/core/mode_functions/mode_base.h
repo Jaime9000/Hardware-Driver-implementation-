@@ -44,6 +44,9 @@ const uint8_t* mode_base_get_emg_config(const ModeBase* mode, size_t* length);
 uint8_t mode_base_get_device_byte(const ModeBase* mode);
 bool mode_base_is_handshake_established(const ModeBase* mode);
 
+// Add this declaration (no vtable changes needed)
+bool mode_base_is_sweep(const ModeBase* mode);
+
 #endif // MODE_BASE_H
 
 

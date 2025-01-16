@@ -133,7 +133,7 @@ void patient_name_watcher_destroy(PatientNameWatcher* watcher) {
 // ModeSweep VTable function implementations
 static int get_mode_number(const ModeBase* mode) {
     (void)mode;
-    return 50;  // Sweep mode is 50
+    return 57;  // Should be 57 to match Python version
 }
 
 static const uint8_t* get_emg_config(const ModeBase* mode, size_t* length) {
@@ -200,8 +200,8 @@ static const ModeBaseVTable mode_sweep_vtable = {
     .get_emg_config = get_emg_config,
     .execute_mode = execute_mode,
     .execute_mode_not_connected = execute_mode_not_connected,
-    .stop = NULL,
-    .destroy = NULL
+    .stop = mode_sweep_stop_process,
+    .destroy = mode_sweep_destroy
 };
 
 // Core functionality implementation
@@ -284,9 +284,11 @@ ErrorCode mode_sweep_process_data(ModeSweep* mode, const uint8_t* data, size_t l
 
         // Queue the data for UI processing
         double angles[2] = {front_angle, side_angle};
-        error = data_queue_put(mode->sweep_queue, angles, 2);
-        if (error != ERROR_NONE) {
-            log_warning("Failed to queue sweep data");
+        if (!namespace_options_get_exit_thread(mode->namespace)) {
+            error = data_queue_put(mode->sweep_queue, angles, 2);
+            if (error != ERROR_NONE) {
+                log_warning("Failed to queue sweep data");
+            }
         }
     }
 
@@ -314,6 +316,35 @@ ErrorCode mode_sweep_create(ModeSweep** mode, SerialInterface* interface,
         return error;
     }
 
+    // First check: Handshake error check
+    error = mode_base_handshake(&new_mode->base, &new_mode->version_string);
+    if (error != ERROR_NONE) {
+        new_mode->version_string = strdup("K7-MYO Ver 2.0");
+    }
+
+    // Second check: If version string exists, do the replace
+    if (new_mode->version_string) {
+        // Remove \r characters in-place
+        char* src = new_mode->version_string;
+        char* dst = new_mode->version_string;
+        while (*src) {
+            if (*src != '\r') {
+                *dst = *src;
+                dst++;
+            }
+            src++;
+        }
+        *dst = '\0';
+    }
+
+    // Third check: Set tilt_enabled based on version string comparison
+    if (strcmp(new_mode->version_string, "K7-MYO Ver 2.0") != 0) {
+        new_mode->tilt_enabled = false;
+    } else {
+        new_mode->tilt_enabled = true;
+    }
+
+    
     // Initialize data queue
     new_mode->sweep_queue = data_queue_create(1000);
     if (!new_mode->sweep_queue) {
@@ -347,6 +378,35 @@ ErrorCode mode_sweep_create(ModeSweep** mode, SerialInterface* interface,
     new_mode->show_sweep_graph = show_sweep_graph;
     new_mode->plot_app = NULL;  // UI placeholder
 
+    // Start the sweep process
+    error = mode_sweep_start_process(new_mode);
+    if (error != ERROR_NONE) {
+        // Complete cleanup of all resources
+        if (new_mode->watcher) {
+            patient_name_watcher_destroy(new_mode->watcher);
+        }
+        if (new_mode->sweep_queue) {
+            data_queue_destroy(new_mode->sweep_queue);
+        }
+        if (new_mode->sweep_command_queue) {
+            data_queue_destroy(new_mode->sweep_command_queue);
+        }
+        if (new_mode->namespace) {
+            namespace_options_destroy(new_mode->namespace);
+        }
+        if (new_mode->plot_app) {
+            sweep_data_ui_destroy(new_mode->plot_app);
+        }
+        mode_base_destroy(&new_mode->base);
+        free(new_mode);
+        return error;
+    }
+
+    error = mode_sweep_save_mode_type(show_sweep_graph);
+    if (error != ERROR_NONE) {
+        log_warning("Failed to save mode type");
+    }
+
     *mode = new_mode;
     return ERROR_NONE;
 }
@@ -354,14 +414,26 @@ ErrorCode mode_sweep_create(ModeSweep** mode, SerialInterface* interface,
 void mode_sweep_destroy(ModeSweep* mode) {
     if (!mode) return;
 
+    // Stop the sweep process
+    mode_sweep_stop_process(mode);
+
+    // Clean up queues
+    if (mode->sweep_queue) {
+        data_queue_destroy(mode->sweep_queue);
+    }
+    if (mode->sweep_command_queue) {
+        data_queue_destroy(mode->sweep_command_queue);
+    }
+
     if (mode->watcher) {
         patient_name_watcher_destroy(mode->watcher);
     }
     if (mode->namespace) {
         namespace_options_destroy(mode->namespace);
     }
-    if (mode->sweep_queue) {
-        data_queue_destroy(mode->sweep_queue);
+    // Clean up plot app if it exists
+    if (mode->plot_app) {
+        sweep_data_ui_destroy(mode->plot_app);
     }
     
     mode_base_destroy(&mode->base);
@@ -369,18 +441,6 @@ void mode_sweep_destroy(ModeSweep* mode) {
 }
 
 // UI Integration placeholder implementations
-ErrorCode mode_sweep_start(ModeSweep* mode) {
-    if (!mode) return ERROR_INVALID_PARAMETER;
-    // Placeholder for UI initialization
-    return ERROR_NONE;
-}
-
-ErrorCode mode_sweep_stop(ModeSweep* mode) {
-    if (!mode) return ERROR_INVALID_PARAMETER;
-    // Placeholder for UI cleanup
-    return ERROR_NONE;
-}
-
 ErrorCode mode_sweep_save_mode_type(bool show_sweep_graph) {
     cJSON* root = cJSON_CreateObject();
     if (!root) return ERROR_MEMORY_ALLOCATION;
@@ -402,5 +462,122 @@ ErrorCode mode_sweep_save_mode_type(bool show_sweep_graph) {
     fclose(file);
     free(json_str);
     
+    return ERROR_NONE;
+}
+
+// Structure to pass data to the new process
+typedef struct {
+    DataQueue* data_queue;
+    DataQueue* command_queue;
+    NamespaceOptions* namespace;
+} SweepProcessParams;
+
+DWORD WINAPI sweep_process_function(LPVOID param) {
+    SweepProcessParams* params = (SweepProcessParams*)param;
+    
+    // Initialize local namespace
+    NamespaceOptions* local_namespace = NULL;
+    ErrorCode error = namespace_options_create(&local_namespace, false);
+    if (error != ERROR_NONE) {
+        return 1;
+    }
+    
+    namespace_options_setup_watch(local_namespace);
+    namespace_options_setup_user_data_watch(local_namespace);
+
+    // Create and initialize plot app (UI component)
+    SweepDataUI* plot_app = NULL;
+    error = sweep_data_ui_create(&plot_app, params->data_queue, 
+                                local_namespace, params->command_queue);
+    if (error != ERROR_NONE) {
+        namespace_options_destroy(local_namespace);
+        return 1;
+    }
+
+    // Setup patient name watcher - matches Python's observer setup
+    PatientNameWatcher* watcher = NULL;
+    error = patient_name_watcher_create(&watcher, plot_app_change_patient_path);
+    if (error != ERROR_NONE) {
+        sweep_data_ui_destroy(plot_app);
+        namespace_options_destroy(local_namespace);
+        return 1;
+    }
+
+    // Setup UI components
+    sweep_data_ui_setup_value_labels(plot_app);
+    sweep_data_ui_setup_table(plot_app);
+    sweep_data_ui_watch_for_command(plot_app);
+    
+    // Run the UI event loop
+    sweep_data_ui_run(plot_app);
+
+    // Cleanup
+    patient_name_watcher_destroy(watcher);
+    sweep_data_ui_destroy(plot_app);
+    namespace_options_destroy(local_namespace);
+    free(params);
+    
+    return 0;
+}
+
+ErrorCode mode_sweep_start_process(ModeSweep* mode) {
+    if (!mode) return ERROR_INVALID_PARAMETER;
+
+    // Create queues if they don't exist
+    if (!mode->sweep_queue) {
+        mode->sweep_queue = data_queue_create(1000);
+    }
+    if (!mode->sweep_command_queue) {
+        mode->sweep_command_queue = data_queue_create(1000);
+    }
+
+    // Prepare parameters for the new process
+    SweepProcessParams* params = malloc(sizeof(SweepProcessParams));
+    if (!params) return ERROR_MEMORY_ALLOCATION;
+    
+    params->data_queue = mode->sweep_queue;
+    params->command_queue = mode->sweep_command_queue;
+    params->namespace = mode->namespace;
+
+    // Create the process
+    mode->sweep_process = CreateThread(
+        NULL,                   // Default security attributes
+        0,                      // Default stack size
+        sweep_process_function, // Thread function
+        params,                 // Parameter to thread function
+        0,                      // Default creation flags
+        NULL                    // Thread identifier
+    );
+
+    if (mode->sweep_process == NULL) {
+        free(params);
+        return ERROR_PROCESS_CREATE;
+    }
+
+    // Send initial command based on window settings
+    if (mode->show_tilt_window) {
+        data_queue_put(mode->sweep_command_queue, "start", true, mode->tilt_enabled);
+    } else if (mode->show_sweep_graph) {
+        data_queue_put(mode->sweep_command_queue, "start", false, mode->tilt_enabled);
+    }
+
+    return ERROR_NONE;
+}
+
+ErrorCode mode_sweep_stop_process(ModeSweep* mode) {
+    if (!mode || !mode->sweep_process) return ERROR_INVALID_PARAMETER;
+
+    // Send stop command to process
+    data_queue_put(mode->sweep_command_queue, "stop", NULL, NULL);
+
+    // Wait for process to finish
+    if (WaitForSingleObject(mode->sweep_process, 5000) == WAIT_TIMEOUT) {
+        // Force terminate if process doesn't respond
+        TerminateThread(mode->sweep_process, 1);
+    }
+
+    CloseHandle(mode->sweep_process);
+    mode->sweep_process = NULL;
+
     return ERROR_NONE;
 }

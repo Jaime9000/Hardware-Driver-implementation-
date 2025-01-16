@@ -13,6 +13,8 @@
 typedef struct {
     Config* config;
     SerialInterface* serial_interface;
+    ModeManager* mode_manager;
+    ProcessManager* process_manager;
     HANDLE stop_event;
     HANDLE http_thread;
     HTTP_SERVER_SESSION_ID session_id;

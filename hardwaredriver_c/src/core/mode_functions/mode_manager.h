@@ -2,42 +2,68 @@
 #define MODE_MANAGER_H
 
 #include <stdbool.h>
-#include "mode.h"
+#include "mode_base.h"
 #include "commands.h"
 #include "serial_interface.h"
 #include "error_codes.h"
+#include "process_manager.h"
 
 // Forward declarations
 typedef struct ModeManager ModeManager;
 typedef struct ModeEntry ModeEntry;
 
 // Function pointer types
-typedef ErrorCode (*ModeCreateFunc)(Mode** mode, SerialInterface* interface);
-typedef void (*ModeDestroyFunc)(Mode* mode);
+typedef ErrorCode (*ModeCreateFunc)(ModeBase** mode, 
+                                  SerialInterface* interface,
+                                  ProcessManager* process_manager);
+typedef void (*ModeDestroyFunc)(ModeBase* mode);
+
+// Define the possible types a mode can be
+typedef enum {
+    MODE_TYPE_BASE,     // For ModeBaseClass derivatives
+    MODE_TYPE_CONTROL   // For ControlFunctions
+} ModeType;
+
+// The actual union of possible types
+typedef struct {
+    ModeType type;
+    union {
+        ModeBase* base_mode;
+        ControlFunctions* control_mode;
+    };
+} ControlModeType;
 
 // Mode entry structure
 struct ModeEntry {
     IOCommand command;
-    ModeCreateFunc create;
-    ModeDestroyFunc destroy;
+    ModeConfig config;
+    ModeCreateFunc create;           // Function to create the mode
+    ModeDestroyFunc destroy;        // Function to destroy the mode
+    ControlModeType mode;           // The actual mode type union
 };
 
 // Mode manager structure
 struct ModeManager {
     SerialInterface* serial_interface;
-    Mode* active_mode;
+    ProcessManager* process_manager;
+    NamespaceOptions* namespace;
+    ModeBase* active_mode;
+    ModeType active_mode_type;
     ModeEntry* mode_entries;
     size_t mode_count;
     size_t mode_capacity;
 };
 
 // Constructor/Destructor
-ErrorCode mode_manager_create(ModeManager** manager, SerialInterface* interface);
+ErrorCode mode_manager_create(ModeManager** manager, 
+                            SerialInterface* interface,
+                            ProcessManager* process_manager);
 void mode_manager_destroy(ModeManager* manager);
 
 // Mode registration and execution
 ErrorCode mode_manager_register_mode(ModeManager* manager, 
                                    IOCommand command,
+                                   ControlModeType mode_type,
                                    ModeCreateFunc create,
                                    ModeDestroyFunc destroy);
 

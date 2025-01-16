@@ -26,29 +26,135 @@ const char* get_mode_command_string(ModeNumber mode) {
 // Function to get the mode configuration based on the command string
 ModeConfig* get_mode_config(const char* command_string) {
     static ModeConfig mode_configs[] = {
-        {MODE_0, EMG_CONFIG_RAW, true, true, 1600},
+        // Mode 0 variants
+        {MODE_0, EMG_CONFIG_PROCESSED, true, true, 1600},  // Base mode-0
+        {MODE_0, EMG_CONFIG_RAW, true, true, 1600},       // mode-0-raw
+        {MODE_0, EMG_CONFIG_RAW, true, true, 1600},       // mode-0-align
+
+        // Base modes
         {MODE_42, EMG_CONFIG_RAW, true, true, 1600},
         {MODE_43, EMG_CONFIG_RAW, true, true, 1600},
-        {MODE_44, EMG_CONFIG_RAW, true, true, 1600},
+        
+        // Mode 44 variants
+        {MODE_44, EMG_CONFIG_RAW, true, true, 1600},          // mode-44-raw
+        {MODE_44, EMG_CONFIG_RAW, true, true, 1600},          // mode-44-raw-no-image
+        {MODE_44, EMG_CONFIG_PROCESSED, true, true, 1600},    // mode-44-sweep
+        
+        // Other modes
         {MODE_51, EMG_CONFIG_RAW, true, true, 1600},
         {MODE_52, EMG_CONFIG_RAW, true, true, 1600},
         {MODE_53, EMG_CONFIG_RAW, true, true, 1600},
         {MODE_56, EMG_CONFIG_RAW, true, true, 1600},
-        {MODE_57, EMG_CONFIG_RAW, true, true, 1600},
+        
+        // Mode 57 variants
+        {MODE_57, EMG_CONFIG_RAW, true, true, 1600},         // mode-57-raw
+        {MODE_57, EMG_CONFIG_RAW, true, true, 1600},         // mode-57-raw-no-image
+        
+        // EMG Version
         {MODE_118, EMG_CONFIG_RAW, true, true, 4},
     };
 
+    // Special handling for equipment byte and lead status
+    if (strcmp(command_string, CMD_GET_EQUIPMENT_BYTE) == 0) {
+        return &mode_configs[3];  // Use MODE_42 config
+    }
+    if (strcmp(command_string, CMD_GET_EMG_LEAD_STATUS) == 0) {
+        return &mode_configs[4];  // Use MODE_43 config
+    }
+
+    // Direct mappings for special variants
+    if (strcmp(command_string, CMD_MODE_0_CONF) == 0) return &mode_configs[0];
+    if (strcmp(command_string, CMD_MODE_0_RAW) == 0) return &mode_configs[1];
+    if (strcmp(command_string, CMD_MODE_0_ALIGN) == 0) return &mode_configs[2];
+    if (strcmp(command_string, CMD_MODE_44_RAW_NO_IMAGE) == 0) return &mode_configs[6];
+    if (strcmp(command_string, CMD_MODE_44_SWEEP) == 0) return &mode_configs[7];
+    if (strcmp(command_string, CMD_MODE_57_RAW_NO_IMAGE) == 0) return &mode_configs[13];
+
+    // Check for mode variants
+    if (strncmp(command_string, "mode-42-raw-", 11) == 0) {
+        return &mode_configs[3];  // Use MODE_42 config
+    }
+    if (strncmp(command_string, "mode-43-raw-", 11) == 0) {
+        return &mode_configs[4];  // Use MODE_43 config
+    }
+
+    // Check base modes
     for (size_t i = 0; i < sizeof(mode_configs) / sizeof(ModeConfig); ++i) {
         if (strcmp(command_string, get_mode_command_string(mode_configs[i].mode_number)) == 0) {
             return &mode_configs[i];
         }
     }
+
     return NULL;
 }
 
 // Function to validate if a command is a valid mode command
 bool validate_mode_command(const char* command) {
-    return get_mode_config(command) != NULL;
+    // Check if command is NULL or empty
+    if (!command || command[0] == '\0') {
+        return false;
+    }
+
+    // Check special commands
+    if (strcmp(command, CMD_GET_EQUIPMENT_BYTE) == 0 ||
+        strcmp(command, CMD_GET_EMG_LEAD_STATUS) == 0 ||
+        strcmp(command, CMD_CHECK_CONNECTION) == 0) {
+        return true;
+    }
+
+    // Check mode 0 variants
+    if (strcmp(command, CMD_MODE_0_CONF) == 0 ||
+        strcmp(command, CMD_MODE_0_RAW) == 0 ||
+        strcmp(command, CMD_MODE_0_ALIGN) == 0) {
+        return true;
+    }
+
+    // Check mode 42 variants
+    if (strcmp(command, CMD_MODE_42_RAW) == 0 ||
+        strcmp(command, CMD_MODE_42_RAW_Q) == 0 ||
+        strcmp(command, CMD_MODE_42_RAW_S) == 0 ||
+        strcmp(command, CMD_MODE_42_RAW_U) == 0 ||
+        strcmp(command, CMD_MODE_42_RAW_W) == 0 ||
+        strcmp(command, CMD_MODE_42_RAW_T) == 0 ||
+        strcmp(command, CMD_MODE_42_RAW_V) == 0 ||
+        strcmp(command, CMD_MODE_42_RAW_P) == 0 ||
+        strcmp(command, CMD_MODE_42_RAW_R) == 0) {
+        return true;
+    }
+
+    // Check mode 43 variants
+    if (strcmp(command, CMD_MODE_43_RAW) == 0 ||
+        strcmp(command, CMD_MODE_43_RAW_Q) == 0 ||
+        strcmp(command, CMD_MODE_43_RAW_S) == 0 ||
+        strcmp(command, CMD_MODE_43_RAW_U) == 0 ||
+        strcmp(command, CMD_MODE_43_RAW_W) == 0 ||
+        strcmp(command, CMD_MODE_43_RAW_T) == 0 ||
+        strcmp(command, CMD_MODE_43_RAW_V) == 0 ||
+        strcmp(command, CMD_MODE_43_RAW_P) == 0 ||
+        strcmp(command, CMD_MODE_43_RAW_R) == 0 ||
+        strcmp(command, CMD_MODE_43_EMG) == 0) {
+        return true;
+    }
+
+    // Check mode 44 variants
+    if (strcmp(command, CMD_MODE_44_RAW) == 0 ||
+        strcmp(command, CMD_MODE_44_RAW_NO_IMAGE) == 0 ||
+        strcmp(command, CMD_MODE_44_SWEEP) == 0) {
+        return true;
+    }
+
+    // Check other modes
+    if (strcmp(command, CMD_MODE_51_RAW) == 0 ||
+        strcmp(command, CMD_MODE_52_RAW) == 0 ||
+        strcmp(command, CMD_MODE_53_RAW) == 0 ||
+        strcmp(command, CMD_MODE_56_RAW) == 0 ||
+        strcmp(command, CMD_MODE_57_RAW) == 0 ||
+        strcmp(command, CMD_MODE_57_RAW_NO_IMAGE) == 0 ||
+        strcmp(command, CMD_EMG_VERSION) == 0) {
+        return true;
+    }
+
+    return false;
 }
 
 // Function to validate if a command is a valid control command
@@ -70,7 +176,7 @@ ErrorCode parse_command(const char* command, IOCommand* io_cmd, ModeConfig** mod
     } 
     else if (validate_mode_command(command)) {
         *mode_cfg = get_mode_config(command);
-        *io_cmd = 0; // No IO command for mode commands
+        *io_cmd = NULL; // No IO command for mode commands
         return ERROR_NONE;
     }
 

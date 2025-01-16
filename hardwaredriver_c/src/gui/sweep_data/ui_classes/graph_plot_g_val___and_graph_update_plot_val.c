@@ -11,7 +11,8 @@ typedef struct {
     MinMaxValues range;  // Added range field
 } PlotData;
 
-// In graph.cErrorCode graph_update_plot_data(Graph* graph, 
+// In graph.c
+ErrorCode graph_update_plot_data(Graph* graph, 
                                const DataPoints* y_points_frontal, 
                                const DataPoints* y_points_sagittal) {
     if (!graph || !y_points_frontal || !y_points_sagittal) {

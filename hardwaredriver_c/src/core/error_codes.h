@@ -23,7 +23,8 @@ typedef enum {
     ERROR_ACCESS_DENIED = -17,
     ERROR_INVALID_SETTINGS = -18,
     ERROR_BREAK_CONDITION = -19,
-    ERROR_BUFFER_EMPTY = -20
+    ERROR_BUFFER_EMPTY = -20,
+    ERROR_SERIAL_EXCEPTION = -21
 } ErrorCode;
 
 // Error handling functions

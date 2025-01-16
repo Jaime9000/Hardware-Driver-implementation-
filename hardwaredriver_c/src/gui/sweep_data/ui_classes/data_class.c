@@ -265,22 +265,22 @@ static ErrorCode compute_rolling_average(DataClass* data, size_t points_count) {
 static void setup_ui_paths(DataClass* data) {
     char path[256];
     
-    snprintf(path, sizeof(path), "%s.current_status", data->builder_path);
+    snprintf(path, sizeof(path), "%s.frame2.current_status", data->builder_path);
     data->status_label_path = strdup(path);
     
-    snprintf(path, sizeof(path), "%s.play_button", data->builder_path);
+    snprintf(path, sizeof(path), "%s.playback_toolbar_frame.play_button", data->builder_path);
     data->play_button_path = strdup(path);
     
-    snprintf(path, sizeof(path), "%s.pause_button", data->builder_path);
+    snprintf(path, sizeof(path), "%s.playback_toolbar_frame.pause_button", data->builder_path);
     data->pause_button_path = strdup(path);
     
-    snprintf(path, sizeof(path), "%s.start_record_button", data->builder_path);
+    snprintf(path, sizeof(path), "%s.recording_toolbar_frame.start_record_button", data->builder_path);
     data->start_record_button_path = strdup(path);
     
-    snprintf(path, sizeof(path), "%s.stop_record_button", data->builder_path);
+    snprintf(path, sizeof(path), "%s.recording_toolbar_frame.stop_record_button", data->builder_path);
     data->stop_record_button_path = strdup(path);
     
-    snprintf(path, sizeof(path), "%s.save_record_button", data->builder_path);
+    snprintf(path, sizeof(path), "%s.recording_toolbar_frame.save_record_button", data->builder_path);
     data->save_record_button_path = strdup(path);
 }
 

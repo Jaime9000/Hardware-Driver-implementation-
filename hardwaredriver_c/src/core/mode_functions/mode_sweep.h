@@ -52,6 +52,8 @@ typedef struct {
     bool show_tilt_window;
     bool show_sweep_graph;
     bool tilt_enabled;
+    HANDLE sweep_process;
+    DataQueue* sweep_command_queue;
 } ModeSweep;
 
 // Constructor/Destructor
@@ -69,6 +71,11 @@ ErrorCode mode_sweep_process_data(ModeSweep* mode, const uint8_t* data, size_t l
 ErrorCode mode_sweep_start(ModeSweep* mode);
 ErrorCode mode_sweep_stop(ModeSweep* mode);
 ErrorCode mode_sweep_save_mode_type(bool show_sweep_graph);
+
+// Add new function declarations
+ErrorCode mode_sweep_start_process(ModeSweep* mode);
+ErrorCode mode_sweep_stop_process(ModeSweep* mode);
+DWORD WINAPI sweep_process_function(LPVOID param);
 
 
 /*

@@ -1,17 +1,19 @@
-#include "data_class.h"
+#include "src/gui/sweep_data/ui_classes/data_class.h"
+#include "src/core/logger.h"
+
+// System headers
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "logger.h"
-#include "../utils.h"
 #include <stdio.h>
-#include "cJSON.h"
-#include <windows.h>
 
+#include "src/gui/sweep_data/utils.h"
+
+// Constants
 #define DEFAULT_PLAYBACK_SPEED 2.0
 #define DEFAULT_CONFIG_PATH "C:\\K7\\playback_speeds"
 
-// Add string arrays for enums
+// String arrays for enums
 const char* RECORDING_MODE_STRINGS[] = {
     "A/P Pitch",
     "Lat Roll",
@@ -28,6 +30,56 @@ const char* RECORDING_STATE_STRINGS[] = {
     "Playback Paused",
     "Error: Not recording data yet"
 };
+
+// Internal structure definition
+struct DataClass {
+    // Core components
+    Tcl_Interp* interp;              // Tcl interpreter
+    char* builder_path;              // UI builder path
+    char* namespace_path;            // Namespace path
+    DataQueue* data_queue;           // Data queue for real-time data
+
+    // Data storage
+    DataPoints frontal_points;       // Frontal view data points
+    DataPoints sagittal_points;      // Sagittal view data points
+    SavedData* saved_data;          // Currently saved data
+    SavedData** saved_data_points;   // Historical data points
+    size_t saved_data_count;        // Number of saved data points
+    size_t saved_data_capacity;     // Capacity of saved data points array
+
+    // Recording state
+    RecordingState state;           // Current recording state
+    bool recording_on;              // Recording active flag
+    bool recording_paused;          // Recording pause flag
+    SYSTEMTIME recording_start_time; // Recording start timestamp
+    char* recording_scan_type;      // Current scan type
+
+    // Playback state
+    bool playback_on;               // Playback active flag
+    SavedData* playback_data;       // Data being played back
+    SYSTEMTIME playback_last_run_time; // Last playback timestamp
+    double playback_speed;          // Playback speed multiplier
+    bool fast_replay;               // Fast replay mode flag
+
+    // UI elements
+    ImageWindowOptions* window_options; // Window display options
+    char* status_label_path;        // Status label path
+    char* play_button_path;         // Play button path
+    char* pause_button_path;        // Pause button path
+    char* start_record_button_path; // Start record button path
+    char* stop_record_button_path;  // Stop record button path
+    char* save_record_button_path;  // Save record button path
+};
+
+// Helper function declarations
+static void init_data_points(DataPoints* points);
+static void free_data_points(DataPoints* points);
+static ErrorCode ensure_capacity(DataPoints* points, size_t needed);
+static ErrorCode sanitize_points(const DataPoints* input, DataPoints* output);
+static ErrorCode compute_rolling_average(DataClass* data, size_t points_count);
+static void setup_ui_paths(DataClass* data);
+static void update_recording_label(DataClass* data);
+static double get_time_difference_seconds(const SYSTEMTIME* start, const SYSTEMTIME* end);
 
 // Implement calculate_min_max_values as a public function
 ErrorCode calculate_min_max_values(const double* values, 
@@ -57,44 +109,6 @@ ErrorCode calculate_min_max_values(const double* values,
     result->min_value = min_value;
     return ERROR_NONE;
 }
-
-struct DataClass {
-    Tcl_Interp* interp;
-    char* builder_path;
-    char* namespace_path;
-    DataQueue* data_queue;
-    
-    // Data points
-    DataPoints frontal_points;
-    DataPoints sagittal_points;
-    SavedData* saved_data;
-    SavedData** saved_data_points;
-    size_t saved_data_count;
-    size_t saved_data_capacity;
-    
-    // Recording state
-    RecordingState state;
-    bool recording_on;
-    bool recording_paused;
-    SYSTEMTIME recording_start_time;
-    char* recording_scan_type;
-    
-    // Playback state
-    bool playback_on;
-    SavedData* playback_data;
-    SYSTEMTIME playback_last_run_time;
-    double playback_speed;
-    bool fast_replay;
-    
-    // UI elements
-    ImageWindowOptions* window_options;
-    char* status_label_path;
-    char* play_button_path;
-    char* pause_button_path;
-    char* start_record_button_path;
-    char* stop_record_button_path;
-    char* save_record_button_path;
-};
 
 static void init_data_points(DataPoints* points) {
     points->values = NULL;

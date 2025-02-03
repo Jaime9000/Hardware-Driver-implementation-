@@ -1,27 +1,39 @@
-#include "scrollable_frame.h"
+#include "src/gui/sweep_data/ui_classes/scrollable_frame.h"
+#include "src/core/logger.h"
+
+// System headers
 #include <string.h>
 #include <stdlib.h>
-#include "logger.h"
 
+// Event handler declarations
+static void on_configure(ClientData client_data, Tcl_Interp* interp, int argc, const char* argv[]);
+static void on_mousewheel(ClientData client_data, Tcl_Interp* interp, int argc, const char* argv[]);
+
+/**
+ * @brief Handles frame configure events
+ * Updates canvas scroll region when frame size changes
+ */
 static void on_configure(ClientData client_data, Tcl_Interp* interp, int argc, const char* argv[]) {
     ScrollableFrame* frame = (ScrollableFrame*)client_data;
-    
     // Update canvas scroll region to match frame size
-    char cmd[256];
+    char cmd[MAX_CMD_LENGTH];
     snprintf(cmd, sizeof(cmd),
              "%s configure -scrollregion [%s bbox all]",
              frame->canvas_path, frame->canvas_path);
     Tcl_Eval(interp, cmd);
 }
 
+/**
+ * @brief Handles mousewheel events
+ * Scrolls the canvas vertically based on mousewheel delta
+ */
 static void on_mousewheel(ClientData client_data, Tcl_Interp* interp, int argc, const char* argv[]) {
     ScrollableFrame* frame = (ScrollableFrame*)client_data;
     
     if (argc < 2) return;
     int delta = atoi(argv[1]);
-    
     // Scroll canvas based on mousewheel delta
-    char cmd[256];
+    char cmd[MAX_CMD_LENGTH];
     snprintf(cmd, sizeof(cmd),
              "%s yview scroll %d units",
              frame->canvas_path, (int)(-delta / 120));
@@ -29,6 +41,11 @@ static void on_mousewheel(ClientData client_data, Tcl_Interp* interp, int argc, 
 }
 
 ScrollableFrame* scrollable_frame_create(Tcl_Interp* interp, const char* container_name) {
+    if (!interp || !container_name) {
+        log_error("Invalid parameters in scrollable_frame_create");
+        return NULL;
+    }
+
     ScrollableFrame* frame = calloc(1, sizeof(ScrollableFrame));
     if (!frame) {
         log_error("Failed to allocate ScrollableFrame");
@@ -37,9 +54,9 @@ ScrollableFrame* scrollable_frame_create(Tcl_Interp* interp, const char* contain
 
     frame->interp = interp;
     frame->container_name = strdup(container_name);
-    
     // Generate unique paths
-    char buf[128];
+    // Generate widget paths
+    char buf[MAX_PATH_LENGTH];
     snprintf(buf, sizeof(buf), "%s.canvas", container_name);
     frame->canvas_path = strdup(buf);
     
@@ -56,10 +73,14 @@ ScrollableFrame* scrollable_frame_create(Tcl_Interp* interp, const char* contain
 }
 
 ErrorCode scrollable_frame_initialize(ScrollableFrame* frame) {
-    if (!frame || !frame->interp) return ERROR_INVALID_PARAMETER;
-
+    if (!frame || !frame->interp) {
+        log_error("Invalid frame or interpreter in initialize");
+        return ERROR_INVALID_PARAMETER;
+    }
     // Create canvas
-    char cmd[512];
+    char cmd[MAX_CMD_LENGTH];
+
+    // Create and configure canvas
     snprintf(cmd, sizeof(cmd),
              "canvas %s -width %d",
              frame->canvas_path, DEFAULT_CANVAS_WIDTH);
@@ -72,22 +93,34 @@ ErrorCode scrollable_frame_initialize(ScrollableFrame* frame) {
     snprintf(cmd, sizeof(cmd),
              "scrollbar %s -orient vertical -command {%s yview}",
              frame->v_scrollbar_path, frame->canvas_path);
-    if (Tcl_Eval(frame->interp, cmd) != TCL_OK) return ERROR_TCL_EVAL;
+    if (Tcl_Eval(frame->interp, cmd) != TCL_OK) {
+        log_error("Failed to create vertical scrollbar");
+        return ERROR_TCL_EVAL;
+    }
 
     snprintf(cmd, sizeof(cmd),
              "scrollbar %s -orient horizontal -command {%s xview}",
              frame->h_scrollbar_path, frame->canvas_path);
-    if (Tcl_Eval(frame->interp, cmd) != TCL_OK) return ERROR_TCL_EVAL;
+    if (Tcl_Eval(frame->interp, cmd) != TCL_OK) {
+        log_error("Failed to create horizontal scrollbar");
+        return ERROR_TCL_EVAL;
+    }
 
     // Create inner frame
     snprintf(cmd, sizeof(cmd), "frame %s", frame->frame_path);
-    if (Tcl_Eval(frame->interp, cmd) != TCL_OK) return ERROR_TCL_EVAL;
+    if (Tcl_Eval(frame->interp, cmd) != TCL_OK) {
+        log_error("Failed to create inner frame");
+        return false;
+    }
 
     // Create window in canvas
     snprintf(cmd, sizeof(cmd),
              "%s create window 0 0 -window %s -anchor nw",
              frame->canvas_path, frame->frame_path);
-    if (Tcl_Eval(frame->interp, cmd) != TCL_OK) return ERROR_TCL_EVAL;
+    if (Tcl_Eval(frame->interp, cmd) != TCL_OK) {
+        log_error("Failed to create canvas window");
+        return false;
+    }
 
     // Configure scrolling
     snprintf(cmd, sizeof(cmd),

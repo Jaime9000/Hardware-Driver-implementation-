@@ -1,14 +1,19 @@
-#include "graph_plot_window.h"
+#include "src/gui/sweep_data/graph_plot_window.h"
+#include "src/core/logger.h"
+#include "src/gui/sweep_data/printer.h"
+
+// System headers
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <windows.h>
 #include <math.h>
-#include "printer.h"
-#include "logger.h"
 
 #define WINDOW_NAME "Graph Plot"  // Global constant for display title
 
+/**
+ * @brief Internal structure of the GraphPlotWindow
+ */
 struct GraphPlotWindow {
     Tcl_Interp* interp;
     const char* window_path;  // Will store the actual widget path
@@ -27,8 +32,20 @@ struct GraphPlotWindow {
     int date_count;
     
     // Table data for printing
-    TableData table_data;
+    TableData table_data;            // Table data structure
 };
+
+// Helper function declarations
+static void init_plot_data(PlotData* data);
+static void free_plot_data(PlotData* data);
+static void init_table_data(TableData* data);
+static void free_table_data(TableData* data);
+static void convert_date_format(const char* input_date, char* output_date, size_t output_size);
+static int compare_rows_by_date(const void* a, const void* b);
+static ErrorCode setup_plot_environment(GraphPlotWindow* window, size_t row_count);
+static ErrorCode plot_data_series(GraphPlotWindow* window);
+static ErrorCode add_plot_legend(GraphPlotWindow* window);
+static ErrorCode setup_print_layout(GraphPlotWindow* window);
 
 static void init_plot_data(PlotData* data) {
     data->x = (PLFLT*)calloc(MAX_DATA_POINTS, sizeof(PLFLT));

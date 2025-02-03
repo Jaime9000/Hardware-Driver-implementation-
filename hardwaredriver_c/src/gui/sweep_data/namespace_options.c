@@ -1,16 +1,29 @@
-#include "namespace_options.h"
-#include "serialize_deserialize.h"
-#include "logger.h"
+#include "src/gui/sweep_data/namespace_options.h"
+#include "src/core/logger.h"
+#include "src/utils/serialize_deserialize.h"
+#include "src/gui/sweep_data/display_tilt_supplemental_windows.h"
+
+// System headers
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <direct.h>
-#include "display_tilt_supplemental_windows.h"
 
+// File constants
 #define OPTIONS_FILENAME "namespace_options"
 #define PATIENT_NAME_FILENAME "patient_name_options"
 #define PATIENT_DRIVE_FILENAME "patient_drive_options"
+
+/*WE MAY NEED THIS BUFFER SIZE CONSTANT*/
+    //#define BUFFER_SIZE 4096
+
+// Static function declarations
+static ErrorCode get_full_filepath(const char* filename, char* filepath, size_t max_length);
+static ErrorCode create_directory_if_not_exists(const char* path);
+static ErrorCode set_patient_path(NamespaceOptions* options, const char* patient_name);
+static DWORD WINAPI watch_directory(LPVOID param);
+static ErrorCode handle_new_user_data_record(NamespaceOptions* options, const char* user_record_path);
 
 static char get_full_path[MAX_PATH_LENGTH];
 

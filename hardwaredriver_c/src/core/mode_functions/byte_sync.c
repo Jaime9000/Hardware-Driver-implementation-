@@ -1,7 +1,8 @@
+#include "src/core/mode_functions/byte_sync.h"
+
+// System headers
 #include <stdlib.h>
 #include <string.h>
-#include "byte_sync.h"
-#include "logger.h"
 
 // Block sizes for different channel types
 #define CMS_BLOCK_SIZE 8

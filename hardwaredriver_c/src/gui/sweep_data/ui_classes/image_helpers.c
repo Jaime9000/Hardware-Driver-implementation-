@@ -1,7 +1,8 @@
-#include "image_helpers.h"
 #include <string.h>
 #include <stdlib.h>
-#include "logger.h"
+
+#include "src/gui/sweep_data/ui_classes/image_helpers.h"
+#include "src/core/logger.h"
 
 ErrorCode image_helper_attach_image(Tcl_Interp* interp, 
                                   const char* label_path,
@@ -10,6 +11,14 @@ ErrorCode image_helper_attach_image(Tcl_Interp* interp,
     char cmd[512];
     
     // Load and process image using Tcl/Tk image commands
+    // Build Tcl command to:
+    // 1. Create temporary image from file
+    // 2. Create resized image
+    // 3. Subsample original image
+    // 4. Create rotated image
+    // 5. Rotate resized image
+    // 6. Configure label with final image
+    // 7. Cleanup temporary images
     snprintf(cmd, sizeof(cmd),
              "image create photo tmp_img -file {%s}; "
              "image create photo resized_img; "

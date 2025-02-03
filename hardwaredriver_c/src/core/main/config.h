@@ -3,9 +3,9 @@
 
 #include <stdbool.h>
 #include <windows.h>
-#include "../logger.h"
-#include "../error_codes.h"
-#include "cJSON.h"
+#include "src/core/utils/logger.h"
+#include "src/core/utils/error_codes.h"
+#include "src/external/cJSON/cJSON.h"
 
 // File paths and constants
 #define MAX_PORT_NAME_LENGTH 256

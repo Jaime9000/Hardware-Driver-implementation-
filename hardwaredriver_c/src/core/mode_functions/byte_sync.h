@@ -4,8 +4,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
-#include "error_codes.h"
-#include "logger.h"
+#include "src/core/error_codes.h"
+#include "src/core/utils/logger.h"
+#include "src/core/serial_interface.h"
 
 // Structure to hold resync results
 typedef struct {
@@ -34,5 +35,15 @@ ErrorCode resync_bytes(const uint8_t* data,
 // Utility functions
 void sync_result_init(SyncResult* result);
 void sync_result_free(SyncResult* result);
+
+// Function declarations
+ErrorCode byte_sync_read_until(SerialInterface* interface, 
+                             uint8_t target_byte,
+                             size_t* bytes_skipped);
+
+ErrorCode byte_sync_read_until_sequence(SerialInterface* interface,
+                                      const uint8_t* sequence,
+                                      size_t sequence_length,
+                                      size_t* bytes_skipped);
 
 #endif // BYTE_SYNC_H

@@ -1,4 +1,4 @@
-#include "window_placement.h"
+#include "src/core/main/window_placement.h"
 #include <stdio.h>
 #include <string.h>
 

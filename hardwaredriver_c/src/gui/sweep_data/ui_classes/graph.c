@@ -1,17 +1,15 @@
-#include "graph.h"
+#include "src/gui/sweep_data/ui_classes/graph.h"
+#include "src/core/logger.h"
+
+// System headers
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <sys/stat.h>
 #include <errno.h>
-#include "logger.h"
-#include "utils.h"
-#include "uuid.h"
-#include "cJSON.h"
-#include "serialize_deserialize.h"
-#include "windows_api.h"
-
-// Constants matching Python implementation
+#include "src/third_party/cJSON.h"
+#include "src/gui/sweep_data/utils.h"
+// Constants
 static const char* GAIN_VALUES[] = {"15", "30", "45", "90"};
 static const char* SCAN_TYPE_VALUES[] = {"A/P Pitch", "Lat Roll", "Other"};
 static const char* SPEED_VALUES[] = {"1.0", "2.0", "4.0"};

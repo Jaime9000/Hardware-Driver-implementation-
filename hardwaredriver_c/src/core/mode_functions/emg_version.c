@@ -1,8 +1,10 @@
+#include "src/core/mode_functions/emg_version.h"
+#include "src/core/logger.h"
+
+// System headers
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "emg_version.h"
-#include "logger.h"
 
 // VTable implementations for EMGVersionAdsOn
 static int emg_version_get_number(const ModeBase* mode) {

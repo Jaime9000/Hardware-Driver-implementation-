@@ -1,8 +1,12 @@
 #include <windows.h>
 #include <stdio.h>
-#include "service.h"
-#include "config.h"
-#include "window_placement.h"
+
+// Project includes with full paths
+#include "src/core/main/service.h"
+#include "src/core/main/config.h"
+#include "src/core/main/window_placement.h"
+#include "src/core/utils/process_manager.h"  // Assuming process_manager is in utils
+#include "src/core/utils/error_codes.h"      // Added since we use ErrorCode
 
 // Function to ensure required directories exist
 static ErrorCode ensure_directories(void) {

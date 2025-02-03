@@ -1,7 +1,13 @@
+#include "src/core/mode_functions/control_functions.h"
+
+// System headers
 #include <string.h>
-#include "control_functions.h"
-#include "logger.h"
-#include "commands.h"
+
+// Note: We don't need to include these again as they're in control_functions.h:
+// - serial_interface.h
+// - error_codes.h
+// - logger.h
+// - commands.h
 
 ErrorCode control_functions_init(ControlFunctions* control, SerialInterface* serial_interface) {
     if (!control || !serial_interface) {

@@ -431,6 +431,44 @@ static ErrorCode handle_mode_data(ModeBase* mode,
     return last_error;
 }
 
+static ErrorCode return_not_connected_data(ModeManager* manager, IOCommand command) {
+    if (!manager) {
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    ModeEntry* entry = find_mode_entry(manager, command);
+    if (!entry) {
+        set_last_error(ERROR_INVALID_COMMAND);
+        log_error("Invalid command: %d", command);
+        return ERROR_INVALID_COMMAND;
+    }
+
+    if (entry->mode.type == MODE_TYPE_BASE) {
+        // Handle base mode execution when disconnected
+        ErrorCode result = change_active_mode(manager, entry);
+        if (result != ERROR_NONE) {
+            uint8_t output[1024];  // Buffer for output data
+            size_t output_length;
+        
+        // Execute with disconnected=true
+            return mode_base_execute(manager->active_mode, output, &output_length, true);
+        }
+
+        
+    }
+    else if (entry->mode.type == MODE_TYPE_CONTROL) {
+        // Handle control functions when disconnected
+        ControlFunctions* control = control_functions_init(control, manager->serial_interface);
+        ErrorCode result = control_functions_execute(control, entry->command, true);  // true for disconnected
+        control_functions_destroy(control);
+        return result;
+    }
+
+    return ERROR_INVALID_MODE_TYPE;
+}
+
+
+
 ErrorCode mode_manager_execute_command(ModeManager* manager, IOCommand command) {
     if (!manager) {
         return ERROR_INVALID_PARAMETER;
@@ -456,12 +494,14 @@ ErrorCode mode_manager_execute_command(ModeManager* manager, IOCommand command) 
         change_active_mode(manager, entry);
         uint8_t* mode_data = NULL;
         size_t actual_size = 0;
+        size_t rsize = 0;
 
 
-        ErrorCode result = handle_mode_data(manager->active_mode, false, return_size, &mode_data, &actual_size);
+        ErrorCode result = handle_mode_data(manager->active_mode, false, &return_size, &mode_data, &actual_size);
         if (result != ERROR_NONE) {
             *data = mode_data;
             *data_size = actual_size;
+            *r_size = return_size;
             return result;
         }
     }
@@ -476,8 +516,9 @@ ErrorCode mode_manager_execute_command(ModeManager* manager, IOCommand command) 
     if (result == ERROR_SERIAL_EXCEPTION) {
         // Handle disconnected state like Python's SerialException catch block
         serial_interface_close(manager->serial_interface);
-        
 
+        return return_not_connected_data(manager, command);    
+    }
     set_last_error(result);
     return result;
 }

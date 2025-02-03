@@ -1,42 +1,63 @@
-#include "data_table.h"
+#include "src/gui/sweep_data/data_table.h"
+#include "src/core/logger.h"
+#include "src/gui/sweep_data/utils.h"
+#include "src/gui/sweep_data/ui_classes/commons.h"
+
+// System headers
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
-#include "utils.h"
-#include "logger.h"
-#include "ui_classes/commons.h"
 
+// Constants
 #define BUFFER_SIZE 4096
 #define MAX_ROWS 1000
 #define DEFAULT_COLUMN_WIDTH 10
 #define DATETIME_COLUMN_WIDTH 20
 #define NUMBER_COLUMN_WIDTH 3
 
+/**
+ * @brief Internal structure of the DataTable
+ */
 struct DataTable {
-    Tcl_Interp* interp;
-    char* patient_path_data;
-    PlaybackCallback playback_callback;
-    CheckCallback on_check;
-    int column;
-    int row;
+    // Core components
+    Tcl_Interp* interp;              // Tcl interpreter
+    char* patient_path_data;         // Path to patient data
+    PlaybackCallback playback_callback; // Callback for playback
+    CheckCallback on_check;          // Callback for checkbox events
+    int column;                      // Grid column position
+    int row;                         // Grid row position
     
     // Directory watching
-    HANDLE dir_handle;
-    HANDLE thread_handle;
-    OVERLAPPED overlapped;
-    char buffer[BUFFER_SIZE];
-    volatile BOOL should_run;
+    HANDLE dir_handle;               // Directory handle
+    HANDLE thread_handle;            // Watch thread handle
+    OVERLAPPED overlapped;           // Async I/O structure
+    char buffer[BUFFER_SIZE];        // Change notification buffer
+    volatile BOOL should_run;        // Thread control flag
     
     // Table data
-    TableRow* rows;
-    size_t row_count;
-    size_t row_capacity;
-    char* frame_path;
+    TableRow* rows;                  // Array of table rows
+    size_t row_count;               // Current number of rows
+    size_t row_capacity;            // Maximum row capacity
+    char* frame_path;               // Path to table frame widget
     
     // Scroll state
-    int scroll_offset;
-    int visible_rows;
+    int scroll_offset;              // Current scroll position
+    int visible_rows;               // Number of visible rows
 };
+
+// Helper function declarations
+static void free_table_row(TableRow* row);
+static ErrorCode create_table_widgets(DataTable* table);
+static DWORD WINAPI watch_directory(LPVOID param);
+static ErrorCode init_directory_watching(DataTable* table);
+static ErrorCode load_sweep_data(const char* filepath, TableRow* row);
+static ErrorCode add_table_row(DataTable* table, const char* filename);
+static int compare_rows_by_datetime(const void* a, const void* b);
+static ErrorCode load_table_data(DataTable* table, const char* scan_filter_type);
+static int get_column_width(int column);
+static ErrorCode create_table_headers(DataTable* table);
+static ErrorCode create_table_row(DataTable* table, size_t row_idx, size_t display_idx);
+static ErrorCode update_table_display(DataTable* table);
 
 static void free_table_row(TableRow* row) {
     if (row) {

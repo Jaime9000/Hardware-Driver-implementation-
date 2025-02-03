@@ -73,6 +73,8 @@ ErrorCode mode_manager_execute_command(ModeManager* manager,
                                      uint8_t** data,
                                      size_t* data_size);
 
+static ErrorCode mode_manager_return_not_connected_data(ModeManager* manager, ModeEntry* entry);
+
 // Utility functions
 ErrorCode mode_manager_get_equipment_byte(ModeManager* manager, uint8_t* byte);
 bool mode_manager_is_mode_active(ModeManager* manager, IOCommand command);

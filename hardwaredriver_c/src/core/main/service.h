@@ -3,11 +3,15 @@
 
 #include <windows.h>
 #include <http.h>
-#include "config.h"
-#include "serial_interface.h"
-#include "error_codes.h"
 
-#define DEFAULT_PORT 8000
+// Project includes with correct paths
+#include "src/core/main/config.h"
+#include "src/core/serial_interface.h"         // Corrected path
+#include "src/core/error_codes.h"              // Corrected path
+#include "src/core/mode_functions/mode_manager.h"
+#include "src/gui/utils/process_manager.h"     // Corrected path - it's in gui/utils
+
+#define DEFAULT_PORT 8080 // Changed from 8000 to 8080
 #define MAX_COMMAND_LENGTH 256
 
 typedef struct {

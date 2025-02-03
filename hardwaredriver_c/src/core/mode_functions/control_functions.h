@@ -2,9 +2,10 @@
 #define CONTROL_FUNCTIONS_H
 
 #include <stdbool.h>
-#include "serial_interface.h"
-#include "error_codes.h"
-#include "logger.h"  // Add logger include
+#include "src/core/serial_interface.h"
+#include "src/core/error_codes.h"
+#include "src/core/logger.h"
+#include "src/core/commands.h"  // Added since we use CMD_ constants
 
 // Control function structure
 typedef struct {

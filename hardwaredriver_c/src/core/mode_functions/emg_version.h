@@ -3,9 +3,9 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "mode_base.h"
-#include "serial_interface.h"
-#include "error_codes.h"
+#include "src/core/mode_functions/mode_base.h"
+#include "src/core/serial_interface.h"
+#include "src/core/error_codes.h"
 
 #define VERSION_STRING_MAX_LENGTH 8
 #define VERSION_DATA_LENGTH 4

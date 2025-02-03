@@ -1,4 +1,6 @@
-#include "config.h"
+#include "src/core/main/config.h"
+
+// System headers needed for implementation
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,8 +8,6 @@
 #include <setupapi.h>
 #include <initguid.h>
 #include <devguid.h>
-#include "cJSON.h"
-#include "logger.h"
 
 // Static helper function declarations
 static bool is_target_usb_device(const char* hardware_id);

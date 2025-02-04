@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "serial_interface.h"
-#include "error_codes.h"
+#include "src/core/serial_interface.h"
+#include "src/core/error_codes.h"
 
 // Forward declarations
 typedef struct Mode Mode;

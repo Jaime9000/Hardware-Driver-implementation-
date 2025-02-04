@@ -28,6 +28,7 @@ set(CORE_SOURCES
     src/core/main/config.c
     src/core/serial_interface.c
     src/core/error_codes.c
+    src/core/logger.c
 )
 
 set(MODE_SOURCES
@@ -47,8 +48,12 @@ set(MODE_SOURCES
 
 set(GUI_SOURCES
     src/gui/utils/process_manager.c
-    src/gui/utils/logger.c
     src/gui/utils/windows_api.c
+    src/gui/utils/image_rotate.c
+    src/gui/utils/play_video.c
+    src/gui/utils/wait_for_process.c
+    src/gui/sweep_data/utils.c
+    src/gui/system_options/display_tilt_supplemental_windows.c
 )
 
 # Create library
@@ -61,6 +66,7 @@ add_library(myotronics_driver_lib
 # Set include directories
 target_include_directories(myotronics_driver_lib
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}    # This lets compiler find paths starting with "src/"
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 

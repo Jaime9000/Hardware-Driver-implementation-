@@ -1,12 +1,16 @@
 #ifndef MYOTRONICS_SERIAL_INTERFACE_H
 #define MYOTRONICS_SERIAL_INTERFACE_H
 
+// System headers
 #include <windows.h>
 #include <stdbool.h>
-#include "commands.h"
-#include "error_codes.h"
-#include "logger.h"
-#include "config.h"
+
+// Project headers
+#include "src/core/commands.h"
+#include "src/core/error_codes.h"
+#include "src/core/logger.h"
+#include "src/core/main/config.h"
+#include "src/core/mode_manager.h"  // needed for mode_manager_execute_command
 
 // Serial port configuration constants
 #define SLOW_BAUD_RATE 115200
@@ -160,9 +164,6 @@ ErrorCode serial_interface_check_connection(SerialInterface* interface);
  */
 ErrorCode serial_interface_get_equipment_byte(SerialInterface* interface, unsigned char* equipment_byte);
 
-// Hardware control functions
-...
-
 /**
  * Gets the current frequency configuration
  * @param interface Pointer to SerialInterface
@@ -178,7 +179,6 @@ ErrorCode serial_interface_get_current_freq_config(SerialInterface* interface, i
  * @return ERROR_NONE on success, error code otherwise
  */
 ErrorCode serial_interface_set_current_freq_config(SerialInterface* interface, int frequency);
-
 
 // Buffer management
 /**

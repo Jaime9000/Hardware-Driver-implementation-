@@ -1,18 +1,29 @@
+#include "src/gui/sweep_data/sweep_data_reusable_ui.h"
+#include "src/core/logger.h"
+
+// System headers
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
 #include <shlwapi.h>
-#include "sweep_data_ui_reusable.h"
-#include "logger.h"
-#include "data_table.h"
-#include "data_class.h"
-#include "graph.h"
 
+// Constants
 #define WINDOW_TITLE "K7-Postural Range of Motion"
-#define TCL_INIT_SCRIPT \
-    "package require Tk\n"
+#define TCL_INIT_SCRIPT "package require Tk\n"
+#define TIMER_INTERVAL 100  // milliseconds
 
+// Forward declarations for static functions
+static ErrorCode initialize_tcl_tk(PlotAppReusable* app);
+static ErrorCode setup_value_labels(PlotAppReusable* app);
+static ErrorCode process_command_queue(PlotAppReusable* app);
+static void process_command_queue_callback(ClientData client_data);
+
+/**
+ * @brief Initializes Tcl/Tk environment
+ */
 static ErrorCode initialize_tcl_tk(PlotAppReusable* app) {
+    if (!app) return ERROR_INVALID_PARAMETER;
+
     app->interp = Tcl_CreateInterp();
     if (!app->interp) {
         log_error("Failed to create Tcl interpreter");

@@ -1,20 +1,23 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
+// System headers
 #include <tcl.h>
 #include <tk.h>
 #include <stdbool.h>
 #include <windows.h>
-#include "data_class.h"
-#include "picture_window_reusable.h"
-#include "namespace_options.h"
-#include "error_codes.h"
-#include "graph_plot_window.h"
-#include "windows_api.h"
-#include "uuid.h"
-#include "serialize_deserialize.h"
 
-// Constants for array sizes and file paths
+// Project headers
+#include "src/core/error_codes.h"
+#include "src/gui/sweep_data/ui_classes/data_class.h"
+#include "src/gui/sweep_data/tilt_windows/picture_window_reusable.h"
+#include "src/gui/sweep_data/tilt_windows/namespace_options.h"
+#include "src/gui/sweep_data/ui_classes/graph_plot_window.h"
+#include "src/gui/windows_api.h"
+#include "src/utils/uuid.h"
+#include "src/utils/serialize_deserialize.h"
+
+// Constants
 #define GAIN_VALUES_COUNT 4
 #define SCAN_TYPE_VALUES_COUNT 3
 #define SPEED_VALUES_COUNT 3

@@ -1,11 +1,20 @@
-#include "utils.h"
+#include "src/gui/sweep_data/utils.h"
+#include "src/core/logger.h"
+
+// System headers
 #include <stdio.h>
 #include <string.h>
 #include <bcrypt.h>
-#include "logger.h"
 
 #pragma comment(lib, "bcrypt.lib")
 
+// Constants for BCrypt
+#define MD5_HASH_LENGTH 16  // MD5 hash length in bytes
+#define HEX_CHAR_LENGTH 2   // Length of hex representation per byte
+
+/**
+ * @brief Encodes a patient name using MD5 hashing
+ */
 ErrorCode encode_name(const char* patient_name, char* output, size_t output_size) {
     if (!patient_name || !output || output_size < MAX_HASH_LENGTH) {
         return ERROR_INVALID_PARAMETER;
@@ -20,11 +29,11 @@ ErrorCode encode_name(const char* patient_name, char* output, size_t output_size
     PBYTE hash_data = NULL;
     ErrorCode result = ERROR_NONE;
 
-    // Open algorithm provider
+    // Initialize BCrypt (open algorithm provider)
     status = BCryptOpenAlgorithmProvider(
-        &hAlg,
-        BCRYPT_MD5_ALGORITHM,
-        NULL,
+        &hAlg, 
+        BCRYPT_MD5_ALGORITHM, 
+        NULL, 
         0);
     if (!BCRYPT_SUCCESS(status)) {
         log_error("Failed to open algorithm provider");
@@ -116,6 +125,9 @@ cleanup:
     return result;
 }
 
+/**
+ * @brief Encodes current datetime in ISO format with custom separator
+ */
 ErrorCode encode_curr_datetime(char* output, size_t output_size) {
     if (!output || output_size < MAX_DATETIME_LENGTH) {
         return ERROR_INVALID_PARAMETER;
@@ -143,6 +155,9 @@ ErrorCode encode_curr_datetime(char* output, size_t output_size) {
     return ERROR_NONE;
 }
 
+/**
+ * @brief Decodes an encoded datetime string back to SYSTEMTIME
+ */
 ErrorCode decode_encoded_datetime(const char* encoded_datetime, SYSTEMTIME* decoded_time) {
     if (!encoded_datetime || !decoded_time) {
         return ERROR_INVALID_PARAMETER;
@@ -153,7 +168,7 @@ ErrorCode decode_encoded_datetime(const char* encoded_datetime, SYSTEMTIME* deco
     // Parse format: YYYY-MM-DDTHH__MM__SS.mmmmmm
     if (sscanf(encoded_datetime, "%d-%d-%dT%d__%d__%d.%d",
                &year, &month, &day, &hour, &min, &sec, &microsec) != 7) {
-        log_error("Failed to parse datetime string");
+        log_error("Failed to parse datetime string: %s", encoded_datetime);
         return ERROR_TIME_CONVERSION;
     }
 

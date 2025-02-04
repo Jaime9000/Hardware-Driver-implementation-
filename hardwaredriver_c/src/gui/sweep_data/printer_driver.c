@@ -1,27 +1,35 @@
-#include "printer_driver.h"
+#include "src/gui/sweep_data/printer_driver.h"
+#include "src/core/logger.h"
+
+// System headers
 #include <stdio.h>
-#include "logger.h"
 #include <gdiplus.h>
 
 #pragma comment(lib, "gdiplus.lib")
 
+/**
+ * @brief Internal structure of the PrintDocument
+ */
 struct PrintDocument {
-    HDC printer_dc;
-    HANDLE printer_handle;
-    char* printer_name;
-    PaperSize paper_size;
-    Orientation orientation;
-    int page;
-    DOCINFO doc_info;
+    HDC printer_dc;              // Printer device context
+    HANDLE printer_handle;       // Printer handle
+    char* printer_name;          // Name of printer
+    PaperSize paper_size;       // Selected paper size
+    Orientation orientation;     // Page orientation
+    int page;                   // Current page number
+    DOCINFO doc_info;           // Document information
 };
 
-PrintDocument* print_document_create(const char* printer, PaperSize paper_size, Orientation orientation) {
+PrintDocument* print_document_create(const char* printer, 
+                                   PaperSize paper_size, 
+                                   Orientation orientation) {
     PrintDocument* doc = (PrintDocument*)calloc(1, sizeof(PrintDocument));
     if (!doc) {
         log_error("Failed to allocate PrintDocument");
         return NULL;
     }
 
+    // Get printer name
     if (printer) {
         doc->printer_name = _strdup(printer);
     } else {

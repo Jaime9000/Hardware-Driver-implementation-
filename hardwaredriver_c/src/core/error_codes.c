@@ -1,4 +1,4 @@
-#include "error_codes.h"
+#include "src/core/error_codes.h"  // Full path to own header
 
 // Static variable to store the last error code
 static ErrorCode last_error = ERROR_NONE;

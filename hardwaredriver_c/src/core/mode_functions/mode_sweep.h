@@ -1,12 +1,12 @@
 #ifndef MODE_SWEEP_H
 #define MODE_SWEEP_H
 
-#include "mode_base.h"
-#include "error_codes.h"
-#include "windows_queue.h"
-#include "namespace_options.h"
 #include <windows.h>
 #include <stdbool.h>
+#include "src/core/mode_functions/mode_base.h"
+#include "src/core/error_codes.h"
+#include "src/core/utils/windows_queue.h"
+#include "src/core/utils/namespace_options.h"
 
 // Constants
 #define SCALING_FACTOR 57.2958

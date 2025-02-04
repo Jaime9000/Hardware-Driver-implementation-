@@ -1,9 +1,9 @@
-#include "picture_window_reusable.h"
+#include "src/gui/sweep_data/tilt_windows/picture_window_reusable.h"
+#include "src/core/logger.h"
 #include <string.h>
 #include <stdlib.h>
 #include <windows.h>
 #include <math.h>
-#include "logger.h"
 
 struct PictureWindowReusable {
     PictureWindowFunctions* base;

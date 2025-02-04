@@ -1,6 +1,6 @@
-#include "commands.h"
-#include "serial_interface.h"
-//#include "error_codes.h" already included in commands.h
+#include "src/core/commands.h"
+#include "src/core/serial_interface.h"
+#include "src/core/error_codes.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>

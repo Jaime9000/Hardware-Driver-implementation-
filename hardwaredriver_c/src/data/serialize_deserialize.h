@@ -1,9 +1,12 @@
 #ifndef SERIALIZE_DESERIALIZE_H
 #define SERIALIZE_DESERIALIZE_H
 
+// System headers
 #include <stdint.h>
 #include <stdbool.h>
-#include "error_codes.h"
+
+// Project headers
+#include "src/core/error_codes.h"
 
 // Data structures for sweep measurements
 typedef struct {

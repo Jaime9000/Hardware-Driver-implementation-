@@ -1,25 +1,34 @@
-#include "process_manager.h"
+#include "src/gui/utils/process_manager.h"
+#include "src/core/logger.h"
+
+// System headers
 #include <stdlib.h>
 #include <signal.h>
-#include "logger.h"
+#include <string.h>
 
+// Constants
 #define SHARED_MEM_NAME "MyotronicsDriverSharedMem"
 #define MAX_PROCESSES 64
 #define MAX_PROCESS_LIST_SIZE 256
 
+/**
+ * @brief Internal process manager structure
+ */
 struct ProcessManager {
-    ProcessNamespace* namespace;
-    HANDLE processes[MAX_PROCESSES];
-    size_t process_count;
-    bool is_master;
-    HANDLE sweep_process;
+    ProcessNamespace* namespace;     // Shared namespace
+    HANDLE processes[MAX_PROCESSES]; // Local process list
+    size_t process_count;           // Number of local processes
+    bool is_master;                 // Master process flag
+    HANDLE sweep_process;           // Handle to sweep process
 };
 
 // Forward declarations
 static void cleanup_process_manager(ProcessManager* manager);
 static ErrorCode terminate_process(HANDLE process);
-
 // Signal handlers
+/**
+ * @brief Windows console control handler
+ */
 static BOOL WINAPI console_handler(DWORD signal) {
     switch (signal) {
         case CTRL_C_EVENT:
@@ -32,6 +41,9 @@ static BOOL WINAPI console_handler(DWORD signal) {
     return FALSE;
 }
 
+/**
+ * @brief Signal handler for process termination
+ */
 static void signal_handler(int signum) {
     switch (signum) {
         case SIGTERM:

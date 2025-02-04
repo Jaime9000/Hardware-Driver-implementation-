@@ -1,4 +1,7 @@
-#include "uuid.h"
+#include "src/data/uuid.h"
+#include "src/core/error_codes.h"
+
+// System headers
 #include <string.h>
 
 ErrorCode uuid4(char* out_str, size_t str_len) {

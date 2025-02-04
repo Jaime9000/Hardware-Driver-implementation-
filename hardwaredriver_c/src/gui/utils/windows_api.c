@@ -1,28 +1,36 @@
-#include "windows_api.h"
-#include "serialize_deserialize.h"
-#include "logger.h"
+#include "src/gui/utils/windows_api.h"
+#include "src/utils/serialize_deserialize.h"
+#include "src/core/logger.h"
 
+// Global variables
 static HANDLE watch_thread = NULL;
 static RedrawCallback global_callback = NULL;
 static volatile bool should_watch = false;
 
 ErrorCode check_c_serialize_bucket(void) {
-    if (!CreateDirectory(COORDINATES_FILE_DIR_PATH, NULL) && 
-        GetLastError() != ERROR_ALREADY_EXISTS) {
-        log_error("Failed to create c_wrapper_serialize_bucket directory");
-        return ERROR_WRITE_FAILED;
+    if (!CreateDirectory(COORDINATES_FILE_DIR_PATH, NULL)) {
+        DWORD error = GetLastError();
+        if (error != ERROR_ALREADY_EXISTS) {
+            log_error("Failed to create directory: system error %lu", error);
+            return ERROR_WRITE_FAILED;
+        }
     }
     return ERROR_NONE;
 }
 
+/**
+ * @brief Creates default window coordinates based on screen size
+ */
 static void create_default_coordinates(CoordinatesData* coordinates) {
     RECT desktop_rect;
     GetWindowRect(GetDesktopWindow(), &desktop_rect);
     
+    // Set left window position
     coordinates->left.x = 0;
     coordinates->left.y = (desktop_rect.bottom - desktop_rect.top) / 8;
     coordinates->left.size = 120;
     
+    // Set right window position
     coordinates->right.x = desktop_rect.right - 500;
     coordinates->right.y = (desktop_rect.bottom - desktop_rect.top) / 8;
     coordinates->right.size = 120;
@@ -88,8 +96,12 @@ ErrorCode make_k7_window_active(void) {
     return ERROR_NONE;
 }
 
+/**
+ * @brief Directory watch thread function
+ */
 static DWORD WINAPI watch_directory(LPVOID _) {
     while (should_watch) {
+        // Set up directory watch
         HANDLE change = FindFirstChangeNotification(
             COORDINATES_FILE_DIR_PATH,
             TRUE,
@@ -99,16 +111,23 @@ static DWORD WINAPI watch_directory(LPVOID _) {
         );
 
         if (change == INVALID_HANDLE_VALUE) {
+            log_error("Failed to set up directory watch");
             Sleep(1000); // Wait before retry
             continue;
         }
 
+        // Monitor for changes
         DWORD wait_result;
         while (should_watch && 
                (wait_result = WaitForSingleObject(change, 100)) != WAIT_FAILED) {
             if (wait_result == WAIT_OBJECT_0) {
-                if (global_callback) global_callback();
-                if (!FindNextChangeNotification(change)) break;
+                if (global_callback) {
+                    global_callback();
+                }
+                if (!FindNextChangeNotification(change)) {
+                    log_error("Failed to find next change notification");
+                    break;
+                }
             }
         }
 

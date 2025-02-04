@@ -1,5 +1,6 @@
-#include "serialize_deserialize.h"
-#include "logger.h"
+#include "src/data/serialize_deserialize.h"
+#include "src/core/logger.h"
+#include "src/core/error_codes.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

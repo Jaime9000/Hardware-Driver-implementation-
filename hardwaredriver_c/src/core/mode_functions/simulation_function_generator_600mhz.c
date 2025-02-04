@@ -1,4 +1,4 @@
-#include "simulation_function_generator_600mhz.h"
+#include "src/core/mode_functions/simulation_function_generator_600mhz.h"
 
 // Sample data matching Python implementation
 static const uint8_t sample_data[SIMULATION_SAMPLE_COUNT][SIMULATION_SAMPLE_WIDTH] = {

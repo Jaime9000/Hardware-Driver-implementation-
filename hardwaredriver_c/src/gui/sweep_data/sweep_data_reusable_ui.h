@@ -1,70 +1,85 @@
 #ifndef SWEEP_DATA_UI_REUSABLE_H
 #define SWEEP_DATA_UI_REUSABLE_H
 
+// System headers
 #include <windows.h>
 #include <shlwapi.h>
 #include <tcl.h>
 #include <tk.h>
-#include "windows_queue.h"
-#include "namespace_options.h"
-#include "error_codes.h"
-#include "serialize_deserialize.h"
-#include "image_helpers.h"
-#include "scrollable_frame.h"
-#include "data_table.h"
-#include "data_class.h"
-#include "graph.h"
 
+// Project headers
+#include "src/gui/sweep_data/windows_queue.h"
+#include "src/gui/sweep_data/namespace_options.h"
+#include "src/core/error_codes.h"
+#include "src/utils/serialize_deserialize.h"
+#include "src/gui/sweep_data/image_helpers.h"
+#include "src/gui/sweep_data/ui_classes/scrollable_frame.h"
+#include "src/gui/sweep_data/data_table.h"
+#include "src/gui/sweep_data/ui_classes/data_class.h"
+#include "src/gui/sweep_data/graph.h"
+
+// Constants
 #define DATA_VERSION "1.2"
 #define MAX_PATH_LENGTH 1024
 
+/**
+ * @brief Recording modes for the application
+ */
 typedef enum {
-    RECORDING_MODE_NONE,
-    RECORDING_MODE_CMS_SCAN,
-    RECORDING_MODE_NORMAL_SCAN
+    RECORDING_MODE_NONE,        // No recording active
+    RECORDING_MODE_CMS_SCAN,    // CMS scan recording mode
+    RECORDING_MODE_NORMAL_SCAN  // Normal scan recording mode
 } RecordingMode;
 
+// Forward declarations for callback types
+typedef ErrorCode (*FilterTableCallback)(void* app, const char* filter_type);
+typedef ErrorCode (*CmsCallback)(void* app, const char* extra_filter, bool with_summary, bool fast_replay);
+typedef ErrorCode (*PlaybackCallback)(void* app, const char* filename);
+
+/**
+ * @brief Main application structure for the reusable plot UI
+ */
 typedef struct {
     // TCL/TK Components
-    Tcl_Interp* interp;
-    ScrollableFrame* scrollable_frame;
+    Tcl_Interp* interp;              // Tcl interpreter
+    ScrollableFrame* scrollable_frame;// Scrollable frame widget
     
     // Windows Components
-    Tk_Window main_window;
-    DataQueue* data_queue;
-    DataQueue* command_queue;
-    NamespaceOptions* namespace;
+    Tk_Window main_window;           // Main Tk window
+    DataQueue* data_queue;           // Queue for data processing
+    DataQueue* command_queue;        // Queue for commands
+    NamespaceOptions* namespace;     // Namespace options
     
     // UI Components
-    DataTable* table;
-    DataClass* data_class;
-    Graph* graph;
-
-    // Add nnuilder/UI components
-    char* resource_path;
+    DataTable* table;                // Data table widget
+    DataClass* data_class;           // Data class instance
+    Graph* graph;                    // Graph widget
     
+    // Add nnuilder/UI components
+    char* resource_path
+
     // Path information
-    char patient_path[MAX_PATH_LENGTH];
-    char resource_path[MAX_PATH_LENGTH];  // For images and resources
+    char patient_path[MAX_PATH_LENGTH];    // Path to patient data
+    char resource_path[MAX_PATH_LENGTH];   // Path to resources
     
     // UI Elements (Tcl/Tk widgets)
-    char* a_flex_label;
-    char* p_ext_label;
-    char* r_flex_label;
-    char* l_flex_label;
-    char* ap_pitch_label;
-    char* lateral_roll_label;
+    char* a_flex_label;              // Anterior flexion label
+    char* p_ext_label;               // Posterior extension label
+    char* r_flex_label;              // Right flexion label
+    char* l_flex_label;              // Left flexion label
+    char* ap_pitch_label;            // A/P pitch label
+    char* lateral_roll_label;        // Lateral roll label
 
-    //callbacks
+    // Callbacks
     FilterTableCallback* table_filter_callback;
     CmsCallback* cms_callback;
     PlaybackCallback* playback_callback;    
     //cms_callback  
     
     // State
-    ///bool running;
-    bool picture_windows_only;
-    bool tilt_enabled;
+      ///bool running;
+    bool picture_windows_only;       // Show only picture windows
+    bool tilt_enabled;               // Tilt functionality enabled
 } PlotAppReusable;
 
 // Constructor/Destructor

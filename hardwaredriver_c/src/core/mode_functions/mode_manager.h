@@ -2,11 +2,11 @@
 #define MODE_MANAGER_H
 
 #include <stdbool.h>
-#include "mode_base.h"
-#include "commands.h"
-#include "serial_interface.h"
-#include "error_codes.h"
-#include "process_manager.h"
+#include "src/core/mode_functions/mode_base.h"
+#include "src/core/commands.h"
+#include "src/core/serial_interface.h"
+#include "src/core/error_codes.h"
+#include "src/core/utils/process_manager.h"
 
 // Forward declarations
 typedef struct ModeManager ModeManager;

@@ -1,7 +1,7 @@
 #ifndef ERROR_CODES_H
 #define ERROR_CODES_H
 
-// Error codes
+// Error codes enum
 typedef enum {
     ERROR_NONE = 0,
     ERROR_INVALID_COMMAND = -1,

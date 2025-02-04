@@ -1,11 +1,13 @@
+#include "src/core/mode_functions/mode_sweep.h"
+#include "src/core/logger.h"
+#include "src/core/mode_functions/byte_sync.h"
+#include "src/core/utils/cJSON.h"
+
+// System headers
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <time.h>
-#include "mode_sweep.h"
-#include "logger.h"
-#include "byte_sync.h"
-#include "cJSON.h"
 
 // Namespace option functions implementation
 ErrorCode set_current_patient_name(const char* patient_name) {

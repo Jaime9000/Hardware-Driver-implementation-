@@ -3,9 +3,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "serial_interface.h"
-#include "error_codes.h"
-#include "process_manager.h"
+#include "src/core/serial_interface.h"
+#include "src/core/error_codes.h"
+#include "src/core/utils/process_manager.h"
+#include "src/core/mode_functions/timing.h"
 
 typedef struct ModeBase ModeBase;
 

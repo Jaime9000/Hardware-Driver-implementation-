@@ -1,22 +1,24 @@
+#include "src/core/mode_functions/mode_manager.h"
+#include "src/core/logger.h"
+#include "src/core/mode_functions/control_functions.h"
+
+// Mode includes with full paths
+#include "src/core/mode_functions/mode_0.h"
+#include "src/core/mode_functions/mode_42.h"
+#include "src/core/mode_functions/mode_43.h"
+#include "src/core/mode_functions/mode_44.h"
+#include "src/core/mode_functions/mode_44_sweep_scan.h"
+#include "src/core/mode_functions/mode_51.h"
+#include "src/core/mode_functions/mode_52.h"
+#include "src/core/mode_functions/mode_53.h"
+#include "src/core/mode_functions/mode_56.h"
+#include "src/core/mode_functions/mode_57.h"
+#include "src/core/mode_functions/mode_sweep.h"
+#include "src/core/mode_functions/emg_version.h"
+
+// System headers
 #include <stdlib.h>
 #include <string.h>
-#include "mode_manager.h"
-#include "logger.h"
-#include "control_functions.h"
-
-// Mode includes
-#include "mode_0.h"
-#include "mode_42.h"
-#include "mode_43.h"
-#include "mode_44.h"
-#include "mode_44_sweep_scan.h"
-#include "mode_51.h"
-#include "mode_52.h"
-#include "mode_53.h"
-#include "mode_56.h"
-#include "mode_57.h"
-#include "mode_sweep.h"
-#include "emg_version.h"
 
 #define INITIAL_MODE_CAPACITY 32
 #define MAX_MODE_RETRIES 5
@@ -340,7 +342,7 @@ static ErrorCode change_active_mode(ModeManager* manager, ModeEntry* entry) {
                     log_debug("Creating new mode for config: %d", entry->config);
 
                     log_debug("Destroying current mode before change");
-                    mode_base_destroy(current_mode);
+                    mode_base_destroy(curraent_mode);
                     manager->active_mode = NULL;
 
                     ModeBase* new_mode;

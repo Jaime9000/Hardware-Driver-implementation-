@@ -1,9 +1,9 @@
-#include "picture_window_functions.h"
+#include "src/gui/sweep_data/tilt_windows/picture_window_functions.h"
+#include "src/core/logger.h"
+#include "src/gui/windows_api.h"
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include "windows_api.h"
-#include "logger.h"
 
 #define DEFAULT_IMAGES_DIR "C:\\hardwaredriver_c\\src\\data"
 #define DEFAULT_FRONTAL_IMAGE "figure8.jpg"

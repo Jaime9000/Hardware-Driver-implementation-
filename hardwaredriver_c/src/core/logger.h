@@ -2,7 +2,7 @@
 #define LOGGER_H
 
 #include <windows.h>
-#include "error_codes.h"
+#include "src/core/error_codes.h"
 
 // Log levels matching Python's logging levels
 typedef enum {

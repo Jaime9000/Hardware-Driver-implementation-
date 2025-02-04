@@ -18,11 +18,12 @@ mkdir %LOGS_DIR%
 copy %BUILD_DIR%\bin\Release\myotronics_driver.exe %BIN_DIR%\
 
 :: Create detailed config file
+:: Create detailed config file
 echo # Myotronics Driver Configuration > %CONFIG_DIR%\settings.conf
 echo. >> %CONFIG_DIR%\settings.conf
 echo # Serial Port Configuration >> %CONFIG_DIR%\settings.conf
 echo port=COM1 >> %CONFIG_DIR%\settings.conf
-echo baud_rate=115200 >> %CONFIG_DIR%\settings.conf
+:: echo baud_rate=115200 >> %CONFIG_DIR%\settings.conf    # Commented out for now
 echo data_bits=8 >> %CONFIG_DIR%\settings.conf
 echo stop_bits=1 >> %CONFIG_DIR%\settings.conf
 echo parity=none >> %CONFIG_DIR%\settings.conf
@@ -34,7 +35,7 @@ echo log_file=../logs/myotronics.log >> %CONFIG_DIR%\settings.conf
 echo. >> %CONFIG_DIR%\settings.conf
 echo # HTTP Server Settings >> %CONFIG_DIR%\settings.conf
 echo http_port=8080 >> %CONFIG_DIR%\settings.conf
-echo http_host=0.0.0.0 >> %CONFIG_DIR%\settings.conf
+echo http_host=localhost >> %CONFIG_DIR%\settings.conf
 
 :: Create detailed readme
 echo Myotronics Driver > %RELEASE_DIR%\readme.txt

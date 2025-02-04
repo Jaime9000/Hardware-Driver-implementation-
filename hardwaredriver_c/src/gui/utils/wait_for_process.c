@@ -1,5 +1,5 @@
-#include "wait_for_process.h"
-#include "logger.h"
+#include "src/gui/utils/wait_for_process.h"
+#include "src/core/logger.h"
 
 ErrorCode wait_process_done(HANDLE process, DWORD wait_time_ms) {
     if (!process) {
@@ -9,11 +9,14 @@ ErrorCode wait_process_done(HANDLE process, DWORD wait_time_ms) {
 
     while (TRUE) {
         DWORD exit_code;
+        
+        // Get process status
         if (!GetExitCodeProcess(process, &exit_code)) {
             log_error("Failed to get process exit code");
             return ERROR_PROCESS_CHECK;
         }
 
+        // Check if process has completed
         if (exit_code != STILL_ACTIVE) {
             break;
         }

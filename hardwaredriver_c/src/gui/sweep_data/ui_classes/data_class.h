@@ -1,20 +1,20 @@
 #ifndef DATA_CLASS_H
 #define DATA_CLASS_H
 
+// System headers
 #include <tcl.h>
 #include <tk.h>
 #include <stdbool.h>
 #include <math.h>
-#include "error_codes.h"
-#include "image_window_options.h"
-#include "windows_queue.h"
-#include "serialize_deserialize.h"
 #include <stdio.h>
-#include "cJSON.h"
 #include <windows.h>
 
-// Make RecordingModes strings accessible
-extern const char* RECORDING_MODE_STRINGS[];
+// Project headers
+#include "src/core/error_codes.h"
+#include "src/gui/sweep_data/tilt_windows/image_window_options.h"
+#include "src/data/windows_queue.h"
+#include "src/utils/serialize_deserialize.h"
+#include "src/third_party/cJSON.h"
 
 // Recording modes enum (matches Python's RecordingModes)
 typedef enum {
@@ -24,9 +24,6 @@ typedef enum {
     CMS_SCAN,
     RECORDING_MODE_COUNT  // Used to iterate over modes
 } RecordingMode;
-
-// Make RecordingStates strings accessible
-extern const char* RECORDING_STATE_STRINGS[];
 
 // Recording states enum (matches Python's RecordingStates)
 typedef enum {
@@ -40,17 +37,16 @@ typedef enum {
     RECORDING_STATE_COUNT  // Used to iterate over states
 } RecordingState;
 
-// Make calculate_min_max_values accessible to other files
+// Externally accessible string arrays for enums
+extern const char* RECORDING_MODE_STRINGS[];
+extern const char* RECORDING_STATE_STRINGS[];
+
+// Data structures
 typedef struct {
     double max_value;
     double min_value;
 } MinMaxValues;
 
-ErrorCode calculate_min_max_values(const double* values, 
-                                 size_t count, 
-                                 MinMaxValues* result);
-
-// Make DataPoints structure public for other files to use
 typedef struct {
     double* values;
     double* timestamps;  // Seconds from start of recording
@@ -58,7 +54,6 @@ typedef struct {
     size_t capacity;
 } DataPoints;
 
-// Make SavedData structure public
 typedef struct {
     DataPoints frontal_points;
     DataPoints sagittal_points;
@@ -75,7 +70,12 @@ DataClass* data_class_create(Tcl_Interp* interp,
                            DataQueue* data_queue);
 void data_class_destroy(DataClass* data);
 
-// Recording control
+// Data analysis functions
+ErrorCode calculate_min_max_values(const double* values, 
+                                 size_t count, 
+                                 MinMaxValues* result);
+
+// Recording control methods
 ErrorCode data_class_start_recording(DataClass* data, const char* scan_type_label);
 ErrorCode data_class_stop_recording(DataClass* data);
 ErrorCode data_class_toggle_recording(DataClass* data, const char* scan_type_label);
@@ -109,18 +109,20 @@ ErrorCode data_class_set_image_window_values(DataClass* data,
  */
 ErrorCode data_class_reinitialize_y_points(DataClass* data);
 
-// Playback control
-ErrorCode data_class_start_playback(DataClass* data, const char* filename);
+// Playback control methods
+ErrorCode data_class_start_playback(DataClass* data, const char* filename, bool fast_replay, bool with_summary);
 ErrorCode data_class_stop_playback(DataClass* data);
 ErrorCode data_class_pause_playback(DataClass* data);
 ErrorCode data_class_resume_playback(DataClass* data);
 ErrorCode data_class_set_playback_speed(DataClass* data, double speed);
 ErrorCode data_class_mark_playback_complete(DataClass* data);
 
-// UI control
-ErrorCode data_class_set_button_state(DataClass* data, 
-                                    const char* button_name, 
-                                    bool active);
+// Playback configuration methods
+ErrorCode data_class_load_playback_speed(const char* config_path, double* speed);
+ErrorCode data_class_save_playback_speed(const char* config_path, double speed);
+
+// UI control methods
+ErrorCode data_class_set_button_state(DataClass* data, const char* button_name, bool active);
 
 // State getters
 bool data_class_is_recording(const DataClass* data);
@@ -132,9 +134,5 @@ DataPoints* data_class_get_frontal_points(DataClass* data);
 DataPoints* data_class_get_sagittal_points(DataClass* data);
 double data_class_get_playback_speed(const DataClass* data);
 const char* data_class_get_scan_type(const DataClass* data);
-
-// Add these function declarations
-ErrorCode data_class_load_playback_speed(const char* config_path, double* speed);
-ErrorCode data_class_save_playback_speed(const char* config_path, double speed);
 
 #endif // DATA_CLASS_H

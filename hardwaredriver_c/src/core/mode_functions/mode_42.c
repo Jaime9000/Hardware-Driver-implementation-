@@ -135,7 +135,7 @@ static ErrorCode execute_mode_raw(ModeBase* base, uint8_t* output, size_t* outpu
 static ErrorCode execute_mode_equipment(ModeBase* base, uint8_t* output, size_t* output_length) {
     EquipmentByte* mode = (EquipmentByte*)base->impl;
     
-    ErrorCode error = serial_interface_handshake(base->interface);
+    ErrorCode error = mode_base_handshake(base);
     if (error != ERROR_NONE) {
         return error;
     }

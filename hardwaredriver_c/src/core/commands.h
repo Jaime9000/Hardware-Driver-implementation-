@@ -2,7 +2,7 @@
 #define MYOTRONICS_COMMANDS_H
 
 #include <stdbool.h>
-#include "error_codes.h"
+#include "src/core/error_codes.h"
 
 // Main IO Commands
 typedef enum {

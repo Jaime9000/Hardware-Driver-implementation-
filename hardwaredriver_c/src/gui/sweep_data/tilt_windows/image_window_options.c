@@ -1,4 +1,4 @@
-#include "image_window_options.h"
+#include "src/gui/sweep_data/tilt_windows/image_window_options.h"
 
 void image_window_options_reset(ImageWindowOptions* options) {
     if (!options) return;

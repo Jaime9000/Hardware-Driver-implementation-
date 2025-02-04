@@ -1,4 +1,7 @@
-#include "logger.h"
+#include "src/core/logger.h"
+#include "src/core/error_codes.h"
+
+// System headers
 #include <stdio.h>
 #include <time.h>
 #include <stdarg.h>

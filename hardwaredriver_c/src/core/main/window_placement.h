@@ -2,7 +2,8 @@
 #define MYOTRONICS_WINDOW_PLACEMENT_H
 
 #include <windows.h>
-#include "commands.h"
+#include "src/core/commands.h"
+#include "src/core/error_codes.h"
 
 #define MAX_WINDOW_ID_LENGTH 64
 #define PLACEMENT_FILE_PATH "C:\\K7\\window_placement.dat"

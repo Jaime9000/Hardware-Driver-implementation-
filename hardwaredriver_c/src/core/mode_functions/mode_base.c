@@ -1,7 +1,8 @@
-#include "mode_base.h"
+#include "src/core/mode_functions/mode_base.h"
+#include "src/core/mode_functions/timing.h"
+#include "src/core/logger.h"
 #include <stdlib.h>
 #include <string.h>
-#include "timing.h"
 
 #define MAX_FLUSH_BYTES 2000
 #define FLUSH_TIMEOUT_MS 80

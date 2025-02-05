@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 
+# Add this line to use vcpkg
+set(CMAKE_TOOLCHAIN_FILE "C:/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+
 # Version information
 set(PROJECT_VERSION_MAJOR 1)
 set(PROJECT_VERSION_MINOR 0)
@@ -128,10 +131,4 @@ add_custom_command(TARGET myotronics_driver POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy 
         "${CMAKE_SOURCE_DIR}/lib/opencv/opencv_world440$<$<CONFIG:Debug>:d>.dll"
         "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/"
-)
-
-# Add cJSON source to your library
-target_sources(myotronics_driver_lib
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/cjson/cJSON.c
 )

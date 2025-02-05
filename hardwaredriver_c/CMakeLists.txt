@@ -21,6 +21,9 @@ if(WIN32)
     add_definitions(-D_WIN32_WINNT=0x0601)  # Target Windows 7 or later
 endif()
 
+# Add near the top with other find_package calls
+find_package(OpenCV REQUIRED)
+
 # Define source files
 set(CORE_SOURCES
     src/core/main/main.c
@@ -68,6 +71,8 @@ target_include_directories(myotronics_driver_lib
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}    # This lets compiler find paths starting with "src/"
         ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/cjson
+        ${OpenCV_INCLUDE_DIRS}        # Add OpenCV include directories
 )
 
 # Create executable and add version resource
@@ -87,6 +92,7 @@ target_link_libraries(myotronics_driver_lib
         advapi32        # Advanced Windows functionality (registry, security)
         setupapi        # Device setup and configuration
         shell32         # Shell functionality
+        ${OpenCV_LIBS}  # Add OpenCV libraries
 )
 
 target_link_libraries(myotronics_driver
@@ -114,4 +120,18 @@ set_target_properties(myotronics_driver
 # Add post-build command to copy executable
 add_custom_command(TARGET myotronics_driver POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:myotronics_driver> ${CMAKE_BINARY_DIR}/bin/
+)
+
+# Add after the existing post-build commands
+# Copy OpenCV DLLs to output directory
+add_custom_command(TARGET myotronics_driver POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy 
+        "${CMAKE_SOURCE_DIR}/lib/opencv/opencv_world440$<$<CONFIG:Debug>:d>.dll"
+        "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/"
+)
+
+# Add cJSON source to your library
+target_sources(myotronics_driver_lib
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/cjson/cJSON.c
 )

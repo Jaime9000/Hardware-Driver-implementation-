@@ -10,7 +10,7 @@
 #include "src/core/error_codes.h"
 #include "src/core/logger.h"
 #include "src/core/main/config.h"
-#include "src/core/mode_manager.h"  // needed for mode_manager_execute_command
+#include "src/core/mode_functions/mode_manager.h"  // needed for mode_manager_execute_command
 
 // Serial port configuration constants
 #define SLOW_BAUD_RATE 115200

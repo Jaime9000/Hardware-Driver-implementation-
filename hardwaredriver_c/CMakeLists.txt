@@ -17,6 +17,9 @@ project(MyotronicsDriver
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+# Force C compiler
+enable_language(C)
+
 # Windows-specific settings
 if(WIN32)
     # Add Windows-specific compile definitions
@@ -77,6 +80,10 @@ foreach(source ${CORE_SOURCES} ${MODE_SOURCES} ${GUI_SOURCES})
     get_source_file_property(lang ${source} LANGUAGE)
     message(STATUS "${source} - Language: ${lang}")
 endforeach()
+
+message(STATUS "Compiler ID: ${CMAKE_C_COMPILER_ID}")
+message(STATUS "C Standard: ${CMAKE_C_STANDARD}")
+message(STATUS "Compiler flags: ${CMAKE_C_FLAGS}")
 
 # Create library
 add_library(myotronics_driver_lib

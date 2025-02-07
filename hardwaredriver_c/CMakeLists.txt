@@ -71,6 +71,13 @@ set_source_files_properties(
     LANGUAGE C
 )
 
+# Add after setting source files
+message(STATUS "Checking source file properties:")
+foreach(source ${CORE_SOURCES} ${MODE_SOURCES} ${GUI_SOURCES})
+    get_source_file_property(lang ${source} LANGUAGE)
+    message(STATUS "${source} - Language: ${lang}")
+endforeach()
+
 # Create library
 add_library(myotronics_driver_lib
     ${CORE_SOURCES}

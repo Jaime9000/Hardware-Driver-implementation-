@@ -62,6 +62,15 @@ set(GUI_SOURCES
     src/gui/system_options/display_tilt_supplemental_windows.c
 )
 
+# Make sure source files are compiled as C
+set_source_files_properties(
+    ${CORE_SOURCES}
+    ${MODE_SOURCES}
+    ${GUI_SOURCES}
+    PROPERTIES
+    LANGUAGE C
+)
+
 # Create library
 add_library(myotronics_driver_lib
     ${CORE_SOURCES}

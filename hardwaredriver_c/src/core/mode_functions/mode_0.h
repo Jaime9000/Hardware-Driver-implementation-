@@ -1,6 +1,7 @@
 #ifndef MODE_0_H
 #define MODE_0_H
 
+#include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include "mode_base.h"

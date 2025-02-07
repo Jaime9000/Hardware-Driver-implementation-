@@ -1,6 +1,7 @@
 #ifndef MYOTRONICS_COMMANDS_H
 #define MYOTRONICS_COMMANDS_H
 
+#include <stdio.h>
 #include <stdbool.h>
 #include "src/core/error_codes.h"
 

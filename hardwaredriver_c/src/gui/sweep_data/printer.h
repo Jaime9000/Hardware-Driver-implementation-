@@ -2,6 +2,7 @@
 #define PRINTER_H
 
 // System headers
+#include <stdio.h>
 #include <windows.h>
 
 // Project headers

@@ -2,6 +2,7 @@
 #define MYOTRONICS_SERIAL_INTERFACE_H
 
 // System headers
+#include <stdio.h>
 #include <windows.h>
 #include <stdbool.h>
 

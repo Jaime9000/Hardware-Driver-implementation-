@@ -1,6 +1,7 @@
 #ifndef MYOTRONICS_SERVICE_H
 #define MYOTRONICS_SERVICE_H
 
+#include <stdio.h>
 #include <windows.h>
 #include <stdint.h>
 #include "config.h"

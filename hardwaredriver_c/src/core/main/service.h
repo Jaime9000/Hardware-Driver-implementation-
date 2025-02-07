@@ -3,6 +3,7 @@
 
 #include <windows.h>
 #include <http.h>
+#include <stdio.h>
 
 // Project includes with correct paths
 #include "src/core/main/config.h"

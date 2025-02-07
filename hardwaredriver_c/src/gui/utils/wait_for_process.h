@@ -2,6 +2,7 @@
 #define WAIT_FOR_PROCESS_H
 
 // System headers
+#include <stdio.h>
 #include <windows.h>
 
 // Project headers

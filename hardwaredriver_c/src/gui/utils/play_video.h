@@ -2,6 +2,7 @@
 #define PLAY_VIDEO_H
 
 // System headers
+#include <stdio.h>
 #include <stdint.h>
 
 // Project headers

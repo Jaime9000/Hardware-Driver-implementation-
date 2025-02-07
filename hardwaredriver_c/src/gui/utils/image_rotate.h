@@ -1,6 +1,7 @@
 #ifndef IMAGE_ROTATE_H
 #define IMAGE_ROTATE_H
 
+#include <stdio.h>
 // OpenCV headers
 #include <opencv2/core/core_c.h>
 

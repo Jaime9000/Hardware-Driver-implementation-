@@ -1,6 +1,7 @@
 #ifndef MODE_BASE_H
 #define MODE_BASE_H
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include "src/core/serial_interface.h"

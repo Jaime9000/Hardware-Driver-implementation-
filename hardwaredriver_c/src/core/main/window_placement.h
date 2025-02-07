@@ -1,6 +1,7 @@
 #ifndef MYOTRONICS_WINDOW_PLACEMENT_H
 #define MYOTRONICS_WINDOW_PLACEMENT_H
 
+#include <stdio.h>
 #include <windows.h>
 #include "src/core/commands.h"
 #include "src/core/error_codes.h"

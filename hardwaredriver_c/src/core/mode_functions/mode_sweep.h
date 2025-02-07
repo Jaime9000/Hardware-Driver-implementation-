@@ -1,6 +1,7 @@
 #ifndef MODE_SWEEP_H
 #define MODE_SWEEP_H
 
+#include <stdio.h>
 #include <windows.h>
 #include <stdbool.h>
 #include "src/core/mode_functions/mode_base.h"

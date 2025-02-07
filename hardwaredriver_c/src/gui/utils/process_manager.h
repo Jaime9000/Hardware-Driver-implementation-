@@ -2,6 +2,7 @@
 #define PROCESS_MANAGER_H
 
 // System headers
+#include <stdio.h>
 #include <windows.h>
 #include <stdbool.h>
 

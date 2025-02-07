@@ -1,6 +1,7 @@
 #ifndef MYOTRONICS_CONFIG_H
 #define MYOTRONICS_CONFIG_H
 
+#include <stdio.h>
 #include <stdbool.h>
 #include <windows.h>
 #include <cJSON.h>

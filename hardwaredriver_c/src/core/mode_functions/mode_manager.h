@@ -1,6 +1,7 @@
 #ifndef MODE_MANAGER_H
 #define MODE_MANAGER_H
 
+#include <stdio.h>
 #include <stdbool.h>
 #include "src/core/mode_functions/mode_base.h"
 #include "src/core/commands.h"

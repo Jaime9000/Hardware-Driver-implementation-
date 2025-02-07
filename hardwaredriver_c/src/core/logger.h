@@ -1,7 +1,7 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-
+#include <stdio.h>
 #include <windows.h>
 #include "src/core/error_codes.h"
 

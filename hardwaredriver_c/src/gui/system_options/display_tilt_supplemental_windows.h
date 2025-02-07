@@ -2,6 +2,7 @@
 #define DISPLAY_TILT_SUPPLEMENTAL_WINDOWS_H
 
 // System headers
+#include <stdio.h>
 #include <stdbool.h>
 
 // Project headers

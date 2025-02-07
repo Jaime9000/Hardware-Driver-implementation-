@@ -32,7 +32,7 @@ static const ModeVTable mode_57_no_image_vtable = {
 ErrorCode mode_57_raw_create(Mode57Raw** mode, SerialInterface* interface) {
     if (!mode || !interface) {
         log_error("Invalid parameters in mode_57_raw_create");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     Mode57Raw* new_mode = (Mode57Raw*)malloc(sizeof(Mode57Raw));
@@ -70,7 +70,7 @@ ErrorCode mode_57_raw_execute(Mode57Raw* mode, uint8_t* output, size_t* output_l
 ErrorCode mode_57_raw_no_image_create(Mode57RawNoImage** mode, SerialInterface* interface) {
     if (!mode || !interface) {
         log_error("Invalid parameters in mode_57_raw_no_image_create");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     Mode57RawNoImage* new_mode = (Mode57RawNoImage*)malloc(sizeof(Mode57RawNoImage));

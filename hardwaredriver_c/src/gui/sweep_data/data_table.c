@@ -394,7 +394,7 @@ ErrorCode data_table_create(DataTable** table,
                           int column,
                           int row,
                           CheckCallback on_check) {
-    if (!table || !interp || !patient_path_data) return ERROR_INVALID_PARAMETER;
+    if (!table || !interp || !patient_path_data) return ERROR_INVALID_PARAM;
 
     DataTable* new_table = calloc(1, sizeof(DataTable));
     if (!new_table) return ERROR_MEMORY_ALLOCATION;
@@ -475,7 +475,7 @@ void data_table_destroy(DataTable* table) {
 }
 
 ErrorCode data_table_repopulate(DataTable* table, const char* scan_filter_type) {
-    if (!table) return ERROR_INVALID_PARAMETER;
+    if (!table) return ERROR_INVALID_PARAM;
 
     ErrorCode error = load_table_data(table, scan_filter_type);
     if (error != ERROR_NONE) return error;
@@ -485,7 +485,7 @@ ErrorCode data_table_repopulate(DataTable* table, const char* scan_filter_type) 
 }
 
 ErrorCode data_table_handle_click(DataTable* table, const char* filename) {
-    if (!table || !filename) return ERROR_INVALID_PARAMETER;
+    if (!table || !filename) return ERROR_INVALID_PARAM;
     
     if (table->playback_callback) {
         table->playback_callback(filename);
@@ -494,7 +494,7 @@ ErrorCode data_table_handle_click(DataTable* table, const char* filename) {
 }
 
 ErrorCode data_table_handle_scroll(DataTable* table, int delta) {
-    if (!table) return ERROR_INVALID_PARAMETER;
+    if (!table) return ERROR_INVALID_PARAM;
 
     int new_offset = table->scroll_offset - (delta / 120);  // Windows wheel delta
     
@@ -524,7 +524,7 @@ const TableRow* data_table_get_checked_rows(const DataTable* table, size_t* coun
 }
 
 ErrorCode data_table_set_row_checked(DataTable* table, size_t row_index, bool checked) {
-    if (!table || row_index >= table->row_count) return ERROR_INVALID_PARAMETER;
+    if (!table || row_index >= table->row_count) return ERROR_INVALID_PARAM;
     
     table->rows[row_index].is_checked = checked;
     

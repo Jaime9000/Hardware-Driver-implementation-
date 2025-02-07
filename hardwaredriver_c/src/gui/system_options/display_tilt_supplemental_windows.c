@@ -37,7 +37,7 @@ static ErrorCode ensure_directory_exists(void) {
 static ErrorCode write_config(const char* value) {
     if (!value) {
         log_error("Invalid value parameter");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     ErrorCode err = ensure_directory_exists();
@@ -75,7 +75,7 @@ static bool file_exists(const char* path) {
 ErrorCode read_config_tilt_supplemental_windows(bool* show_windows) {
     if (!show_windows) {
         log_error("Invalid show_windows parameter");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     // Create file if it doesn't exist

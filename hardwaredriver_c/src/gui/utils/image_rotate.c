@@ -12,7 +12,7 @@
 ErrorCode rotate_bound(IplImage* image, double angle, IplImage** output) {
     // Validate input parameters
     if (!image || !output) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     // Initialize output pointer

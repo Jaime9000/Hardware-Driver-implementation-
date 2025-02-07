@@ -85,7 +85,7 @@ static double get_time_difference_seconds(const SYSTEMTIME* start, const SYSTEMT
 ErrorCode calculate_min_max_values(const double* values, 
                                  size_t count, 
                                  MinMaxValues* result) {
-    if (!values || !result || count == 0) return ERROR_INVALID_PARAMETER;
+    if (!values || !result || count == 0) return ERROR_INVALID_PARAM;
     
     double max_value = values[0];
     double min_value = values[0];
@@ -143,7 +143,7 @@ static ErrorCode ensure_capacity(DataPoints* points, size_t needed) {
 }
 
 static ErrorCode sanitize_points(const DataPoints* input, DataPoints* output) {
-    if (!input || !output) return ERROR_INVALID_PARAMETER;
+    if (!input || !output) return ERROR_INVALID_PARAM;
     
     output->count = 0;
     if (input->count == 0) return ERROR_NONE;
@@ -163,7 +163,7 @@ static ErrorCode sanitize_points(const DataPoints* input, DataPoints* output) {
 }
 
 static ErrorCode compute_rolling_average(DataClass* data, size_t points_count) {
-    if (!data || points_count == 0) return ERROR_INVALID_PARAMETER;
+    if (!data || points_count == 0) return ERROR_INVALID_PARAM;
     
     // Initialize temporary storage
     DataPoints temp_frontal = {0};
@@ -431,7 +431,7 @@ void data_class_destroy(DataClass* data) {
 }
 
 ErrorCode data_class_start_recording(DataClass* data, const char* scan_type_label) {
-    if (!data || !scan_type_label) return ERROR_INVALID_PARAMETER;
+    if (!data || !scan_type_label) return ERROR_INVALID_PARAM;
     
     data_class_clear_all(data, !data->recording_paused);
     
@@ -456,7 +456,7 @@ ErrorCode data_class_start_recording(DataClass* data, const char* scan_type_labe
 }
 
 ErrorCode data_class_stop_recording(DataClass* data) {
-    if (!data) return ERROR_INVALID_PARAMETER;
+    if (!data) return ERROR_INVALID_PARAM;
     
     if (!data->recording_on) {
         data->state = ERROR_NOT_RECORDING;
@@ -478,7 +478,7 @@ ErrorCode data_class_stop_recording(DataClass* data) {
 }
 
 ErrorCode data_class_toggle_recording(DataClass* data, const char* scan_type_label) {
-    if (!data) return ERROR_INVALID_PARAMETER;
+    if (!data) return ERROR_INVALID_PARAM;
     
     if (data->recording_on && !data->recording_paused) {
         return data_class_stop_recording(data);
@@ -488,7 +488,7 @@ ErrorCode data_class_toggle_recording(DataClass* data, const char* scan_type_lab
 }
 
 ErrorCode data_class_pause_data_capture(DataClass* data) {
-    if (!data) return ERROR_INVALID_PARAMETER;
+    if (!data) return ERROR_INVALID_PARAM;
     
     if (!data->recording_on) return ERROR_INVALID_STATE;
     
@@ -497,7 +497,7 @@ ErrorCode data_class_pause_data_capture(DataClass* data) {
 }
 
 ErrorCode data_class_resume_data_capture(DataClass* data) {
-    if (!data) return ERROR_INVALID_PARAMETER;
+    if (!data) return ERROR_INVALID_PARAM;
     
     if (!data->recording_on) return ERROR_INVALID_STATE;
     
@@ -506,7 +506,7 @@ ErrorCode data_class_resume_data_capture(DataClass* data) {
 }
 
 ErrorCode data_class_clear_all(DataClass* data, bool clear_all) {
-    if (!data) return ERROR_INVALID_PARAMETER;
+    if (!data) return ERROR_INVALID_PARAM;
     
     data->recording_paused = false;
     data->playback_on = false;
@@ -560,7 +560,7 @@ ErrorCode data_class_clear_all(DataClass* data, bool clear_all) {
 ErrorCode data_class_append_data(DataClass* data, 
                                const double* y_points, 
                                size_t points_count) {
-    if (!data || !y_points || points_count == 0) return ERROR_INVALID_PARAMETER;
+    if (!data || !y_points || points_count == 0) return ERROR_INVALID_PARAM;
     
     // Get time since recording started
     SYSTEMTIME current_time;
@@ -594,7 +594,7 @@ ErrorCode data_class_append_data(DataClass* data,
 ErrorCode data_class_save_recording(DataClass* data, 
                                   const char* patient_path, 
                                   const char* extra_filter) {
-    if (!data || !patient_path) return ERROR_INVALID_PARAMETER;
+    if (!data || !patient_path) return ERROR_INVALID_PARAM;
     
     // Stop recording if needed
     if (data->recording_on && !data->recording_paused) {
@@ -628,7 +628,7 @@ ErrorCode data_class_save_recording(DataClass* data,
 ErrorCode data_class_set_image_window_values(DataClass* data, 
                                            double frontal, 
                                            double sagittal) {
-    if (!data || !data->window_options) return ERROR_INVALID_PARAMETER;
+    if (!data || !data->window_options) return ERROR_INVALID_PARAM;
     
     data->window_options->current_frontal = frontal;
     data->window_options->current_sagittal = sagittal;
@@ -652,7 +652,7 @@ ErrorCode data_class_set_image_window_values(DataClass* data,
 }
 
 ErrorCode data_class_reinitialize_y_points(DataClass* data) {
-    if (!data) return ERROR_INVALID_PARAMETER;
+    if (!data) return ERROR_INVALID_PARAM;
     
     data->frontal_points.count = 0;
     data->sagittal_points.count = 0;
@@ -661,7 +661,7 @@ ErrorCode data_class_reinitialize_y_points(DataClass* data) {
 }
 
 ErrorCode data_class_load_playback_speed(const char* config_path, double* speed) {
-    if (!speed) return ERROR_INVALID_PARAMETER;
+    if (!speed) return ERROR_INVALID_PARAM;
     
     // Try to read the file
     FILE* f = fopen(config_path, "r");
@@ -736,7 +736,7 @@ ErrorCode data_class_start_playback(DataClass* data,
                                   const char* filename, 
                                   bool fast_replay,
                                   bool with_summary) {
-    if (!data || !filename) return ERROR_INVALID_PARAMETER;
+    if (!data || !filename) return ERROR_INVALID_PARAM;
     
     // Stop any current recording/playback
     data_class_clear_all(data, true);
@@ -782,7 +782,7 @@ ErrorCode data_class_start_playback(DataClass* data,
 }
 
 ErrorCode data_class_stop_playback(DataClass* data) {
-    if (!data) return ERROR_INVALID_PARAMETER;
+    if (!data) return ERROR_INVALID_PARAM;
     
     data->state = PLAYBACK_COMPLETE;
     data->playback_on = false;
@@ -796,7 +796,7 @@ ErrorCode data_class_stop_playback(DataClass* data) {
 }
 
 ErrorCode data_class_pause_playback(DataClass* data) {
-    if (!data) return ERROR_INVALID_PARAMETER;
+    if (!data) return ERROR_INVALID_PARAM;
     
     if (!data->playback_on) return ERROR_INVALID_STATE;
     
@@ -809,7 +809,7 @@ ErrorCode data_class_pause_playback(DataClass* data) {
 }
 
 ErrorCode data_class_resume_playback(DataClass* data) {
-    if (!data) return ERROR_INVALID_PARAMETER;
+    if (!data) return ERROR_INVALID_PARAM;
     
     if (!data->playback_on) return ERROR_INVALID_STATE;
     
@@ -823,14 +823,14 @@ ErrorCode data_class_resume_playback(DataClass* data) {
 }
 
 ErrorCode data_class_set_playback_speed(DataClass* data, double speed) {
-    if (!data || speed <= 0.0) return ERROR_INVALID_PARAMETER;
+    if (!data || speed <= 0.0) return ERROR_INVALID_PARAM;
     
     data->playback_speed = speed;
     return ERROR_NONE;
 }
 
 ErrorCode data_class_mark_playback_complete(DataClass* data) {
-    if (!data) return ERROR_INVALID_PARAMETER;
+    if (!data) return ERROR_INVALID_PARAM;
     
     data->state = PLAYBACK_COMPLETE;
     update_recording_label(data);
@@ -840,7 +840,7 @@ ErrorCode data_class_mark_playback_complete(DataClass* data) {
 ErrorCode data_class_set_button_state(DataClass* data, 
                                     const char* button_path, 
                                     bool active) {
-    if (!data || !button_path) return ERROR_INVALID_PARAMETER;
+    if (!data || !button_path) return ERROR_INVALID_PARAM;
     
     char cmd[256];
     snprintf(cmd, sizeof(cmd), "%s configure -state {%s}",

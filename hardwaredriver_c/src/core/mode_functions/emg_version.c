@@ -32,7 +32,7 @@ static ErrorCode emg_version_execute(ModeBase* mode, uint8_t* output, size_t* ou
     error = serial_interface_read_data(mode->interface, version_data, &bytes_read, VERSION_DATA_LENGTH);
     if (error != ERROR_NONE || bytes_read != VERSION_DATA_LENGTH) {
         log_error("Unable to parse all values");
-        return ERROR_INVALID_DATA;
+        return ERROR_DATA_INVALID;
     }
 
     // Format version string based on data
@@ -46,7 +46,7 @@ static ErrorCode emg_version_execute(ModeBase* mode, uint8_t* output, size_t* ou
     size_t version_length = strlen(impl->version_string);
     if (*output_length < version_length) {
         log_error("Output buffer too small for version string");
-        return ERROR_BUFFER_OVERFLOW;
+        return ERROR_BUFF_OVERFLOW;
     }
 
     memcpy(output, impl->version_string, version_length);
@@ -61,7 +61,7 @@ static ErrorCode emg_version_execute_not_connected(ModeBase* mode, uint8_t* outp
     
     if (*output_length < version_length) {
         log_error("Output buffer too small for version string");
-        return ERROR_BUFFER_OVERFLOW;
+        return ERROR_BUFF_OVERFLOW;
     }
 
     memcpy(output, default_version, version_length);
@@ -116,7 +116,7 @@ static ErrorCode hardware_connection_execute_not_connected(ModeBase* mode, uint8
     
     if (*output_length < msg_length) {
         log_error("Output buffer too small for not-connected message");
-        return ERROR_BUFFER_OVERFLOW;
+        return ERROR_BUFF_OVERFLOW;
     }
 
     memcpy(output, not_connected, msg_length);

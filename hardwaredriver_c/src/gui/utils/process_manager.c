@@ -135,7 +135,7 @@ void process_manager_setup_handlers(ProcessManager* manager) {
 ErrorCode process_manager_start_process(ProcessManager* manager, 
                                       ProcessFunction func, 
                                       void* args) {
-    if (!manager || !func) return ERROR_INVALID_PARAMETER;
+    if (!manager || !func) return ERROR_INVALID_PARAM;
     if (manager->process_count >= MAX_PROCESSES) return ERROR_LIMIT_EXCEEDED;
 
     STARTUPINFO si = {0};
@@ -165,7 +165,7 @@ ErrorCode process_manager_start_process(ProcessManager* manager,
 }
 
 ErrorCode process_manager_stop_process(ProcessManager* manager, HANDLE process) {
-    if (!manager || !process) return ERROR_INVALID_PARAMETER;
+    if (!manager || !process) return ERROR_INVALID_PARAM;
 
     ErrorCode result = terminate_process(process);
     if (result != ERROR_NONE) return result;
@@ -199,7 +199,7 @@ ErrorCode process_manager_stop_process(ProcessManager* manager, HANDLE process) 
 }
 
 ErrorCode process_manager_stop_all_processes(ProcessManager* manager) {
-    if (!manager) return ERROR_INVALID_PARAMETER;
+    if (!manager) return ERROR_INVALID_PARAM;
 
     ErrorCode result = ERROR_NONE;
     
@@ -223,7 +223,7 @@ ErrorCode process_manager_stop_all_processes(ProcessManager* manager) {
 }
 
 ErrorCode process_manager_kill_sweep_process(ProcessManager* manager) {
-    if (!manager) return ERROR_INVALID_PARAMETER;
+    if (!manager) return ERROR_INVALID_PARAM;
     
     if (manager->sweep_process) {
         ErrorCode result = terminate_process(manager->sweep_process);

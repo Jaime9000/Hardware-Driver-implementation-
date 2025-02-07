@@ -24,7 +24,7 @@ struct PictureWindowReusable {
 };
 
 static ErrorCode create_ui_elements(PictureWindowReusable* window) {
-    if (!window) return ERROR_INVALID_PARAMETER;
+    if (!window) return ERROR_INVALID_PARAM;
 
     char cmd[1024];
     
@@ -264,7 +264,7 @@ PictureWindowReusable* picture_window_reusable_create(Tcl_Interp* interp,
 }
 
 ErrorCode picture_window_reusable_start(PictureWindowReusable* window) {
-    if (!window) return ERROR_INVALID_PARAMETER;
+    if (!window) return ERROR_INVALID_PARAM;
     
     EnterCriticalSection(&window->mutex);
     if (!window->is_running) {
@@ -277,7 +277,7 @@ ErrorCode picture_window_reusable_start(PictureWindowReusable* window) {
 }
 
 ErrorCode picture_window_reusable_stop(PictureWindowReusable* window) {
-    if (!window) return ERROR_INVALID_PARAMETER;
+    if (!window) return ERROR_INVALID_PARAM;
     
     EnterCriticalSection(&window->mutex);
     window->is_running = false;
@@ -288,7 +288,7 @@ ErrorCode picture_window_reusable_stop(PictureWindowReusable* window) {
 
 ErrorCode picture_window_reusable_update_patient_name(PictureWindowReusable* window, 
                                                     const char* new_patient_name) {
-    if (!window || !new_patient_name) return ERROR_INVALID_PARAMETER;
+    if (!window || !new_patient_name) return ERROR_INVALID_PARAM;
     
     EnterCriticalSection(&window->mutex);
     
@@ -304,7 +304,7 @@ ErrorCode picture_window_reusable_update_patient_name(PictureWindowReusable* win
 }
 
 ErrorCode picture_window_reusable_hide_window(PictureWindowReusable* window) {
-    if (!window) return ERROR_INVALID_PARAMETER;
+    if (!window) return ERROR_INVALID_PARAM;
     
     EnterCriticalSection(&window->mutex);
     if (!window->window_hidden) {
@@ -321,7 +321,7 @@ ErrorCode picture_window_reusable_hide_window(PictureWindowReusable* window) {
 }
 
 ErrorCode picture_window_reusable_show_window(PictureWindowReusable* window) {
-    if (!window) return ERROR_INVALID_PARAMETER;
+    if (!window) return ERROR_INVALID_PARAM;
     
     EnterCriticalSection(&window->mutex);
     if (window->window_hidden) {
@@ -338,7 +338,7 @@ ErrorCode picture_window_reusable_show_window(PictureWindowReusable* window) {
 }
 
 ErrorCode picture_window_reusable_load_image(PictureWindowReusable* window) {
-    if (!window) return ERROR_INVALID_PARAMETER;
+    if (!window) return ERROR_INVALID_PARAM;
     
     EnterCriticalSection(&window->mutex);
     
@@ -363,7 +363,7 @@ ErrorCode picture_window_reusable_load_image(PictureWindowReusable* window) {
         if (!last_name) {
             free(name_copy);
             LeaveCriticalSection(&window->mutex);
-            return ERROR_INVALID_PARAMETER;
+            return ERROR_INVALID_PARAM;
         }
         *last_name++ = '\0';
         char* first_name = name_copy;

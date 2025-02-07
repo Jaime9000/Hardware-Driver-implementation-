@@ -346,7 +346,7 @@ ErrorCode namespace_options_setup_watch(NamespaceOptions* options,
                                       OptionsDisplayCallback display_cb,
                                       NamespaceCallback namespace_cb,
                                       PatientNameCallback patient_cb) {
-    if (!options) return ERROR_INVALID_PARAMETER;
+    if (!options) return ERROR_INVALID_PARAM;
 
     // Store callbacks
     options->options_display_callback = display_cb;
@@ -379,7 +379,7 @@ ErrorCode namespace_options_setup_watch(NamespaceOptions* options,
 
 ErrorCode namespace_options_setup_user_data_watch(NamespaceOptions* options,
                                                 UserDataCallback callback) {
-    if (!options || !options->patient_path[0]) return ERROR_INVALID_PARAMETER;
+    if (!options || !options->patient_path[0]) return ERROR_INVALID_PARAM;
 
     options->user_data_callback = callback;
 

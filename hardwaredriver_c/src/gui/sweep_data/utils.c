@@ -17,7 +17,7 @@
  */
 ErrorCode encode_name(const char* patient_name, char* output, size_t output_size) {
     if (!patient_name || !output || output_size < MAX_HASH_LENGTH) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     BCRYPT_ALG_HANDLE hAlg = NULL;
@@ -130,7 +130,7 @@ cleanup:
  */
 ErrorCode encode_curr_datetime(char* output, size_t output_size) {
     if (!output || output_size < MAX_DATETIME_LENGTH) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     SYSTEMTIME now;
@@ -149,7 +149,7 @@ ErrorCode encode_curr_datetime(char* output, size_t output_size) {
 
     if (written < 0 || written >= output_size) {
         log_error("DateTime string truncated");
-        return ERROR_BUFFER_OVERFLOW;
+        return ERROR_BUFF_OVERFLOW;
     }
 
     return ERROR_NONE;
@@ -160,7 +160,7 @@ ErrorCode encode_curr_datetime(char* output, size_t output_size) {
  */
 ErrorCode decode_encoded_datetime(const char* encoded_datetime, SYSTEMTIME* decoded_time) {
     if (!encoded_datetime || !decoded_time) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     int year, month, day, hour, min, sec, microsec;
@@ -188,7 +188,7 @@ ErrorCode decode_encoded_datetime(const char* encoded_datetime, SYSTEMTIME* deco
 /*
 
 static ErrorCode format_datetime_for_display(const SYSTEMTIME* time, char* buffer, size_t buffer_size) {
-    if (!time || !buffer || buffer_size < 11) return ERROR_INVALID_PARAMETER;
+    if (!time || !buffer || buffer_size < 11) return ERROR_INVALID_PARAM;
     
     snprintf(buffer, buffer_size, "%02d-%02d-%04d",
              time->wMonth,

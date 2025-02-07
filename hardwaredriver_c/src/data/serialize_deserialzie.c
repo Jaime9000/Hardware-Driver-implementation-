@@ -65,7 +65,7 @@ static ErrorCode read_string(FILE* file, char* str, size_t max_len) {
     }
     
     if (len >= max_len) {
-        return ERROR_BUFFER_OVERFLOW;
+        return ERROR_BUFF_OVERFLOW;
     }
     
     if (fread(str, sizeof(char), len, file) != len) {
@@ -79,7 +79,7 @@ static ErrorCode read_string(FILE* file, char* str, size_t max_len) {
 ErrorCode sweep_data_serialize(const char* filepath, const SweepData* data) {
     if (!filepath || !data) {
         log_error("Invalid parameters in sweep_data_serialize");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     FILE* file = fopen(filepath, "wb");
@@ -135,7 +135,7 @@ cleanup:
 ErrorCode sweep_data_deserialize(const char* filepath, SweepData** data) {
     if (!filepath || !data) {
         log_error("Invalid parameters in sweep_data_deserialize");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     FILE* file = fopen(filepath, "rb");
@@ -241,7 +241,7 @@ void sweep_data_free(SweepData* data) {
 ErrorCode app_state_serialize(const char* filepath, const AppState* state) {
     if (!filepath || !state) {
         log_error("Invalid parameters in app_state_serialize");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     FILE* file = fopen(filepath, "wb");
@@ -284,7 +284,7 @@ cleanup:
 ErrorCode app_state_deserialize(const char* filepath, AppState* state) {
     if (!filepath || !state) {
         log_error("Invalid parameters in app_state_deserialize");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     FILE* file = fopen(filepath, "rb");
@@ -337,7 +337,7 @@ cleanup:
 ErrorCode patient_info_serialize(const char* filepath, const PatientInfo* info) {
     if (!filepath || !info) {
         log_error("Invalid parameters in patient_info_serialize");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     FILE* file = fopen(filepath, "wb");
@@ -371,7 +371,7 @@ cleanup:
 ErrorCode patient_info_deserialize(const char* filepath, PatientInfo* info) {
     if (!filepath || !info) {
         log_error("Invalid parameters in patient_info_deserialize");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     FILE* file = fopen(filepath, "rb");

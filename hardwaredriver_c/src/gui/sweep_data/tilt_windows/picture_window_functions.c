@@ -60,14 +60,14 @@ PictureWindowFunctions* picture_window_functions_create(Tcl_Interp* interp,
 
 ErrorCode picture_window_functions_update_patient_name(PictureWindowFunctions* window,
                                                      const char* patient_name) {
-    if (!window || !patient_name) return ERROR_INVALID_PARAMETER;
+    if (!window || !patient_name) return ERROR_INVALID_PARAM;
 
     // Split patient name
     char* name_copy = strdup(patient_name);
     char* last_name = strchr(name_copy, '+');
     if (!last_name) {
         free(name_copy);
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
     *last_name++ = '\0';
     char* first_name = name_copy;

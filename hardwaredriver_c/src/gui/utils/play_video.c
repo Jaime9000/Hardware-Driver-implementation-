@@ -21,7 +21,7 @@
  * @return ErrorCode ERROR_NONE on success, error code otherwise
  */
 static ErrorCode load_or_create_json(cJSON** json) {
-    if (!json) return ERROR_INVALID_PARAMETER;
+    if (!json) return ERROR_INVALID_PARAM;
 
     FILE* fp = fopen(JSON_PATH, "r");
     if (!fp) {

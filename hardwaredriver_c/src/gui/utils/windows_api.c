@@ -37,7 +37,7 @@ static void create_default_coordinates(CoordinatesData* coordinates) {
 }
 
 ErrorCode load_coordinates(CoordinatesData* coordinates) {
-    if (!coordinates) return ERROR_INVALID_PARAMETER;
+    if (!coordinates) return ERROR_INVALID_PARAM;
     
     ErrorCode result = check_c_serialize_bucket();
     if (result != ERROR_NONE) return result;
@@ -54,7 +54,7 @@ ErrorCode load_coordinates(CoordinatesData* coordinates) {
 }
 
 ErrorCode save_coordinates(const CoordinatesData* coordinates) {
-    if (!coordinates) return ERROR_INVALID_PARAMETER;
+    if (!coordinates) return ERROR_INVALID_PARAM;
 
     ErrorCode result = check_c_serialize_bucket();
     if (result != ERROR_NONE) return result;
@@ -64,7 +64,7 @@ ErrorCode save_coordinates(const CoordinatesData* coordinates) {
 }
 
 ErrorCode load_placement_values(bool is_left, int* x, int* y, int* size) {
-    if (!x || !y || !size) return ERROR_INVALID_PARAMETER;
+    if (!x || !y || !size) return ERROR_INVALID_PARAM;
 
     CoordinatesData coordinates;
     ErrorCode result = load_coordinates(&coordinates);
@@ -141,7 +141,7 @@ static DWORD WINAPI watch_directory(LPVOID _) {
 }
 
 ErrorCode setup_watch_event(RedrawCallback callback) {
-    if (!callback) return ERROR_INVALID_PARAMETER;
+    if (!callback) return ERROR_INVALID_PARAM;
     
     global_callback = callback;
     should_watch = true;

@@ -25,9 +25,9 @@
 
 static ErrorCode resize_mode_entries(ModeManager* manager) {
     if (!manager) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid manager parameter in resize_mode_entries");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     size_t new_capacity = manager->mode_capacity * 2;
@@ -52,9 +52,9 @@ ErrorCode mode_manager_create(ModeManager** manager,
                             SerialInterface* interface,
                             ProcessManager* process_manager) {
     if (!manager || !interface || !process_manager) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in mode_manager_create");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     log_debug("Creating new mode manager");
@@ -257,9 +257,9 @@ ErrorCode mode_manager_register_mode(ModeManager* manager,
                                    ModeCreateFunc create,
                                    ModeDestroyFunc destroy) {
     if (!manager || !create) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in mode_manager_register_mode");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     log_debug("Registering mode for command: %d", command);
@@ -313,9 +313,9 @@ static ModeEntry* find_mode_entry(ModeManager* manager, IOCommand command, ModeC
 
 static ErrorCode change_active_mode(ModeManager* manager, ModeEntry* entry) {
     if (!manager || !entry) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in change_active_mode");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     /*
@@ -338,7 +338,7 @@ static ErrorCode change_active_mode(ModeManager* manager, ModeEntry* entry) {
 
                 if(entry->mode.type != MODE_TYPE_BASE){
                     log_error("Mode type is not base");
-                    return ERROR_INVALID_PARAMETER;
+                    return ERROR_INVALID_PARAM;
                     log_debug("Creating new mode for config: %d", entry->config);
 
                     log_debug("Destroying current mode before change");
@@ -435,7 +435,7 @@ static ErrorCode handle_mode_data(ModeBase* mode,
 
 static ErrorCode return_not_connected_data(ModeManager* manager, IOCommand command) {
     if (!manager) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     ModeEntry* entry = find_mode_entry(manager, command);
@@ -473,7 +473,7 @@ static ErrorCode return_not_connected_data(ModeManager* manager, IOCommand comma
 
 ErrorCode mode_manager_execute_command(ModeManager* manager, IOCommand command) {
     if (!manager) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
 
@@ -527,9 +527,9 @@ ErrorCode mode_manager_execute_command(ModeManager* manager, IOCommand command) 
 
 ErrorCode mode_manager_get_equipment_byte(ModeManager* manager, uint8_t* byte) {
     if (!manager || !byte) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in mode_manager_get_equipment_byte");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     if (!manager->active_mode) {

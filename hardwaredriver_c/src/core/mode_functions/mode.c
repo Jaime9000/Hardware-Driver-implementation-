@@ -10,9 +10,9 @@
 
 ErrorCode mode_init(Mode* mode, SerialInterface* interface, const ModeVTable* vtable, void* impl) {
     if (!mode || !interface || !vtable || !impl) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in mode_init");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     mode->interface = interface;
@@ -42,9 +42,9 @@ void mode_destroy(Mode* mode) {
 
 ErrorCode mode_handshake(Mode* mode) {
     if (!mode || !mode->interface) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in mode_handshake");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     // Reset hardware at 60Hz
@@ -109,9 +109,9 @@ ErrorCode mode_handshake(Mode* mode) {
 
 ErrorCode mode_execute(Mode* mode, bool disconnected) {
     if (!mode || !mode->vtable) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in mode_execute");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     if (disconnected) {
@@ -150,9 +150,9 @@ ErrorCode mode_execute(Mode* mode, bool disconnected) {
 
 ErrorCode mode_flush_data(Mode* mode) {
     if (!mode || !mode->interface) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in mode_flush_data");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     uint8_t buffer[READ_CHUNK_SIZE];
@@ -164,7 +164,7 @@ ErrorCode mode_flush_data(Mode* mode) {
         size_t bytes_read;
         ErrorCode result = serial_interface_read(mode->interface, buffer, READ_CHUNK_SIZE, &bytes_read);
         
-        if (result != ERROR_NONE && result != ERROR_TIMEOUT) {
+        if (result != ERROR_NONE && result != ERROR_TIME_OUT) {
             set_last_error(result);
             log_error("Flush failed: %s", get_error_string(result));
             return result;

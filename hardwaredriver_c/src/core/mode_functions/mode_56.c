@@ -17,7 +17,7 @@ static const uint8_t* get_emg_config(const ModeBase* mode, size_t* length) {
 
 static ErrorCode execute_mode(ModeBase* base, uint8_t* output, size_t* output_length) {
     if (!base || !output || !output_length) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     Mode56Raw* mode = (Mode56Raw*)base->impl;
@@ -67,7 +67,7 @@ static ErrorCode execute_mode(ModeBase* base, uint8_t* output, size_t* output_le
 
 static ErrorCode execute_mode_not_connected(ModeBase* base, uint8_t* output, size_t* output_length) {
     if (!output || !output_length) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     // Match Python's pattern exactly: [7, 204, 23, 69, 55, 192, 72, 12, 88, 9]
@@ -98,7 +98,7 @@ static const ModeBaseVTable mode_56_vtable = {
 ErrorCode mode_56_raw_create(Mode56Raw** mode, SerialInterface* interface, ProcessManager* process_manager) {
     if (!mode || !interface || !process_manager) {
         log_error("Invalid parameters in mode_56_raw_create");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     Mode56Raw* new_mode = (Mode56Raw*)malloc(sizeof(Mode56Raw));

@@ -24,7 +24,7 @@
  * @param process Handle to the process to wait for
  * @param wait_time_ms Time to wait between checks in milliseconds
  * @return ErrorCode ERROR_NONE on success, otherwise:
- *         ERROR_INVALID_PARAMETER if process handle is invalid
+ *         ERROR_INVALID_PARAM if process handle is invalid
  *         ERROR_PROCESS_CHECK if unable to check process status
  */
 ErrorCode wait_process_done(HANDLE process, DWORD wait_time_ms);

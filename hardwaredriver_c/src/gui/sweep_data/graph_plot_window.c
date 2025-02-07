@@ -156,7 +156,7 @@ GraphPlotWindow* graph_plot_window_create(Tcl_Interp* interp,
 }
 
 ErrorCode graph_plot_window_setup_toolbar(GraphPlotWindow* window) {
-    if (!window) return ERROR_INVALID_PARAMETER;
+    if (!window) return ERROR_INVALID_PARAM;
 
     // Configure print button (similar to Python's print_button.configure)
     char cmd[256];
@@ -169,7 +169,7 @@ ErrorCode graph_plot_window_setup_toolbar(GraphPlotWindow* window) {
 }
 
 ErrorCode graph_plot_window_populate_data(GraphPlotWindow* window) {
-    if (!window) return ERROR_INVALID_PARAMETER;
+    if (!window) return ERROR_INVALID_PARAM;
 
     // Get checked rows
     size_t row_count;
@@ -340,7 +340,7 @@ ErrorCode graph_plot_window_populate_data(GraphPlotWindow* window) {
 }
 
 ErrorCode graph_plot_window_print(GraphPlotWindow* window) {
-    if (!window) return ERROR_INVALID_PARAMETER;
+    if (!window) return ERROR_INVALID_PARAM;
 
     char temp_filename[] = "temp_XXXXXX.png";
     mkstemp(temp_filename);

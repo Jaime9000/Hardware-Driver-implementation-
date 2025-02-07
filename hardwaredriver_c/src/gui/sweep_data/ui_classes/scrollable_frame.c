@@ -75,7 +75,7 @@ ScrollableFrame* scrollable_frame_create(Tcl_Interp* interp, const char* contain
 ErrorCode scrollable_frame_initialize(ScrollableFrame* frame) {
     if (!frame || !frame->interp) {
         log_error("Invalid frame or interpreter in initialize");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
     // Create canvas
     char cmd[MAX_CMD_LENGTH];

@@ -28,7 +28,7 @@ static bool validate_values(const uint8_t* data) {
 
 static ErrorCode execute_mode(ModeBase* base, uint8_t* output, size_t* output_length) {
     if (!base || !output || !output_length) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
     
     // Read and process data
@@ -76,7 +76,7 @@ static ErrorCode execute_mode(ModeBase* base, uint8_t* output, size_t* output_le
 
 static ErrorCode execute_mode_not_connected(ModeBase* base, uint8_t* output, size_t* output_length) {
     if (!output || !output_length) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     // Match Python's pattern: [0, 0, 3<<4, 0, 4<<4, 0, 5<<4, 0]
@@ -107,7 +107,7 @@ static const ModeBaseVTable mode_52_vtable = {
 ErrorCode mode_52_raw_create(Mode52Raw** mode, SerialInterface* interface, ProcessManager* process_manager) {
     if (!mode || !interface || !process_manager) {
         log_error("Invalid parameters in mode_52_raw_create");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     Mode52Raw* new_mode = (Mode52Raw*)malloc(sizeof(Mode52Raw));

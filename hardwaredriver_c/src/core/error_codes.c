@@ -14,13 +14,13 @@ const char* get_error_string(ErrorCode code) {
             return "Handshake failed";
         case ERROR_DEVICE_DISCONNECTED: 
             return "Device disconnected";
-        case ERROR_TIMEOUT: 
+        case ERROR_TIME_OUT: 
             return "Timeout occurred";
         case ERROR_WRITE_FAILED: 
             return "Write operation failed";
         case ERROR_READ_FAILED: 
             return "Read operation failed";
-        case ERROR_BUFFER_OVERFLOW: 
+        case ERROR_BUFF_OVERFLOW: 
             return "Buffer overflow";
         case ERROR_INVALID_MODE: 
             return "Invalid mode";
@@ -34,13 +34,13 @@ const char* get_error_string(ErrorCode code) {
             return "Parity error in serial communication";
         case ERROR_OVERRUN: 
             return "Buffer overrun in serial communication";
-        case ERROR_INVALID_PARAMETER: 
+        case ERROR_INVALID_PARAM: 
             return "Invalid parameter provided";
         case ERROR_MEMORY_ALLOCATION: 
             return "Memory allocation failed";
-        case ERROR_INVALID_DATA: 
+        case ERROR_DATA_INVALID: 
             return "Invalid data received";
-        case ERROR_ACCESS_DENIED: 
+        case ERROR_ACCESS_DENIED_: 
             return "Access denied to serial port";
         case ERROR_INVALID_SETTINGS: 
             return "Invalid serial port settings";

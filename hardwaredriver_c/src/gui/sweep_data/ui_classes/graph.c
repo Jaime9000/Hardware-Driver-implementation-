@@ -293,7 +293,7 @@ void graph_destroy(Graph* graph) {
 }
 
 ErrorCode graph_start(Graph* graph, bool picture_windows_only, bool tilt_enabled) {
-    if (!graph) return ERROR_INVALID_PARAMETER;
+    if (!graph) return ERROR_INVALID_PARAM;
 
     graph->show_sweep_graph = NULL;
     
@@ -358,7 +358,7 @@ ErrorCode graph_start(Graph* graph, bool picture_windows_only, bool tilt_enabled
 }
 
 ErrorCode graph_stop(Graph* graph) {
-    if (!graph) return ERROR_INVALID_PARAMETER;
+    if (!graph) return ERROR_INVALID_PARAM;
 
     EnterCriticalSection(&graph->running_mutex);
     if (!graph->running) {
@@ -407,7 +407,7 @@ bool graph_is_running(const Graph* graph) {
 
 ErrorCode graph_animate(ClientData clientData) {
     Graph* graph = (Graph*)clientData;
-    if (!graph) return ERROR_INVALID_PARAMETER;
+    if (!graph) return ERROR_INVALID_PARAM;
 
     // Try to get exit_thread from namespace
     bool exit_thread;
@@ -646,7 +646,7 @@ ErrorCode graph_animate_picture_window_only(ClientData clientData) {
 }
 
 ErrorCode graph_animate_playback(Graph* graph) {
-    if (!graph || !graph->data_class) return ERROR_INVALID_PARAMETER;
+    if (!graph || !graph->data_class) return ERROR_INVALID_PARAM;
 
     if (data_class_is_paused(graph->data_class)) {
         return ERROR_NONE;
@@ -696,7 +696,7 @@ ErrorCode graph_animate_playback(Graph* graph) {
 }
 
 ErrorCode graph_update_patient_name(Graph* graph, const char* new_patient_name) {
-    if (!graph || !new_patient_name) return ERROR_INVALID_PARAMETER;
+    if (!graph || !new_patient_name) return ERROR_INVALID_PARAM;
 
     free(graph->patient_name);
     graph->patient_name = strdup(new_patient_name);
@@ -719,7 +719,7 @@ ErrorCode graph_update_patient_name(Graph* graph, const char* new_patient_name) 
 }
 
 ErrorCode graph_update_patient_path(Graph* graph, const char* new_patient_path) {
-    if (!graph || !new_patient_path) return ERROR_INVALID_PARAMETER;
+    if (!graph || !new_patient_path) return ERROR_INVALID_PARAM;
 
     free(graph->patient_path);
     graph->patient_path = strdup(new_patient_path);
@@ -732,7 +732,7 @@ ErrorCode graph_update_plot_data(Graph* graph,
                                const DataPoints* y_points_frontal, 
                                const DataPoints* y_points_sagittal) {
     if (!graph || !y_points_frontal || !y_points_sagittal) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     // Use PlotData structure from graph_plot_window.h
@@ -933,7 +933,7 @@ static int C_CloseInstructions(ClientData clientData, Tcl_Interp* interp,
 
 // Register all callbacks with Tcl
 ErrorCode graph_register_commands(Graph* graph) {
-    if (!graph) return ERROR_INVALID_PARAMETER;
+    if (!graph) return ERROR_INVALID_PARAM;
 
     Tcl_CreateObjCommand(graph->interp, "C_StartRecording", C_StartRecording, (ClientData)graph, NULL);
     Tcl_CreateObjCommand(graph->interp, "C_StopRecording", C_StopRecording, (ClientData)graph, NULL);
@@ -952,7 +952,7 @@ ErrorCode graph_register_commands(Graph* graph) {
 
 // Setup buttons with registered commands
 ErrorCode graph_setup_buttons(Graph* graph) {
-    if (!graph) return ERROR_INVALID_PARAMETER;
+    if (!graph) return ERROR_INVALID_PARAM;
 
     graph_register_commands(graph);
     char cmd[1024];
@@ -1127,7 +1127,7 @@ static int C_FilterChanged(ClientData clientData, Tcl_Interp* interp,
 }
 
 ErrorCode graph_setup_combo_values(Graph* graph) {
-    if (!graph) return ERROR_INVALID_PARAMETER;
+    if (!graph) return ERROR_INVALID_PARAM;
 
     char cmd[1024];
     
@@ -1213,7 +1213,7 @@ ErrorCode graph_setup_combo_values(Graph* graph) {
 }
 
 ErrorCode graph_setup_graph(Graph* graph, const char* speed_label) {
-    if (!graph || !speed_label) return ERROR_INVALID_PARAMETER;
+    if (!graph || !speed_label) return ERROR_INVALID_PARAM;
 
     if (graph->fig_exists) {
         // Clear existing plot (equivalent to ax.clear())
@@ -1328,7 +1328,7 @@ ErrorCode graph_setup_graph(Graph* graph, const char* speed_label) {
 }
 
 ErrorCode graph_handle_key_press(Graph* graph, int keycode) {
-    if (!graph) return ERROR_INVALID_PARAMETER;
+    if (!graph) return ERROR_INVALID_PARAM;
 
     // Handle spacebar (ASCII 32)
     if (keycode == 32) {
@@ -1343,7 +1343,7 @@ ErrorCode graph_handle_key_press(Graph* graph, int keycode) {
 }
 
 ErrorCode graph_show_instructions(Graph* graph) {
-    if (!graph) return ERROR_INVALID_PARAMETER;
+    if (!graph) return ERROR_INVALID_PARAM;
 
     // Create instructions window
     char cmd[2048];
@@ -1384,7 +1384,7 @@ ErrorCode graph_show_instructions(Graph* graph) {
 }
 
 ErrorCode graph_create_temp_data(Graph* graph) {
-    if (!graph) return ERROR_INVALID_PARAMETER;
+    if (!graph) return ERROR_INVALID_PARAM;
     
     // Create temp directory if it doesn't exist
     char temp_dir[512];
@@ -1443,7 +1443,7 @@ ErrorCode graph_create_temp_data(Graph* graph) {
 }
 
 ErrorCode graph_load_temp_data(Graph* graph) {
-    if (!graph || !graph->temp_file_fd) return ERROR_INVALID_PARAMETER;
+    if (!graph || !graph->temp_file_fd) return ERROR_INVALID_PARAM;
 
     SavedData saved_data = {0};
     
@@ -1481,7 +1481,7 @@ ErrorCode graph_load_temp_data(Graph* graph) {
 
 
 ErrorCode graph_plot_graph_values(Graph* graph) {
-    if (!graph) return ERROR_INVALID_PARAMETER;
+    if (!graph) return ERROR_INVALID_PARAM;
 
     // Create new graph plot window using existing implementation
     GraphPlotWindow* graph_window = graph_plot_window_create(

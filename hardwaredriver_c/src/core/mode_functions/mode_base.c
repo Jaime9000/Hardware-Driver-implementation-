@@ -13,7 +13,7 @@ ErrorCode mode_base_create(ModeBase** mode, SerialInterface* interface,
                          const ModeBaseVTable* vtable, void* impl) {
     if (!mode || !interface || !process_manager || !vtable || !impl) {
         log_error("Invalid parameters in mode_base_create");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     ModeBase* new_mode = (ModeBase*)calloc(1, sizeof(ModeBase));
@@ -50,7 +50,7 @@ void mode_base_destroy(ModeBase* mode) {
 
 ErrorCode mode_base_handshake(ModeBase* mode) {
     if (!mode || !mode->interface) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     // Reset hardware at 60Hz
@@ -104,7 +104,7 @@ ErrorCode mode_base_handshake(ModeBase* mode) {
 
 ErrorCode mode_base_execute(ModeBase* mode, uint8_t* output, size_t* output_length, bool disconnected) {
     if (!mode || !output || !output_length) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     *output_length = 0;
@@ -132,7 +132,7 @@ ErrorCode mode_base_execute(ModeBase* mode, uint8_t* output, size_t* output_leng
 
 ErrorCode mode_base_flush_data(ModeBase* mode) {
     if (!mode || !mode->interface) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     uint8_t buffer[READ_CHUNK_SIZE];
@@ -143,7 +143,7 @@ ErrorCode mode_base_flush_data(ModeBase* mode) {
         size_t bytes_read;
         ErrorCode result = serial_interface_read_data(mode->interface, buffer, &bytes_read, READ_CHUNK_SIZE);
         
-        if (result != ERROR_NONE && result != ERROR_TIMEOUT) {
+        if (result != ERROR_NONE && result != ERROR_TIME_OUT) {
             return result;
         }
 

@@ -22,7 +22,7 @@ static void process_command_queue_callback(ClientData client_data);
  * @brief Initializes Tcl/Tk environment
  */
 static ErrorCode initialize_tcl_tk(PlotAppReusable* app) {
-    if (!app) return ERROR_INVALID_PARAMETER;
+    if (!app) return ERROR_INVALID_PARAM;
 
     app->interp = Tcl_CreateInterp();
     if (!app->interp) {
@@ -131,7 +131,7 @@ ErrorCode plot_app_reusable_create(PlotAppReusable** app,
                                  NamespaceOptions* namespace,
                                  DataQueue* command_queue) {
     if (!app || !data_queue || !namespace || !command_queue) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     PlotAppReusable* new_app = (PlotAppReusable*)calloc(1, sizeof(PlotAppReusable));
@@ -234,13 +234,13 @@ void plot_app_reusable_destroy(PlotAppReusable* app) {
 
 // Core functionality implementation
 ErrorCode plot_app_reusable_run(PlotAppReusable* app) {
-    if (!app || !app->interp) return ERROR_INVALID_PARAMETER;
+    if (!app || !app->interp) return ERROR_INVALID_PARAM;
     Tk_MainLoop();
     return ERROR_NONE;
 }
 
 ErrorCode plot_app_reusable_close_window(PlotAppReusable* app) {
-    if (!app) return ERROR_INVALID_PARAMETER;
+    if (!app) return ERROR_INVALID_PARAM;
     graph_stop(app->graph);
     
     return ERROR_NONE;
@@ -281,7 +281,7 @@ ErrorCode plot_app_reusable_setup_table(PlotAppReusable* app) {
 }
 
 ErrorCode plot_app_reusable_change_patient_path(PlotAppReusable* app, const char* new_path) {
-    if (!app || !new_path) return ERROR_INVALID_PARAMETER;
+    if (!app || !new_path) return ERROR_INVALID_PARAM;
 
     // Read serialized patient name
     SerializedData* data = NULL;
@@ -317,7 +317,7 @@ ErrorCode plot_app_reusable_change_patient_path(PlotAppReusable* app, const char
 
 // Playback functionality implementation
 ErrorCode plot_app_reusable_playback_callback(PlotAppReusable* app, const char* file_name) {
-    if (!app || !file_name) return ERROR_INVALID_PARAMETER;
+    if (!app || !file_name) return ERROR_INVALID_PARAM;
 
     char full_path[MAX_PATH_LENGTH];
     PathCombine(full_path, app->patient_path, file_name);
@@ -333,7 +333,7 @@ ErrorCode plot_app_reusable_playback_callback(PlotAppReusable* app, const char* 
     // Extract saved data array
     if (!data->data) {
         serialized_data_destroy(data);
-        return ERROR_INVALID_DATA;
+        return ERROR_DATA_INVALID;
     }
 
     // Start playback using data class
@@ -349,7 +349,7 @@ ErrorCode plot_app_reusable_playback_cms_window(PlotAppReusable* app,
                                               const char* extra_filter,
                                               bool with_summary,
                                               bool fast_replay) {
-    if (!app) return ERROR_INVALID_PARAMETER;
+    if (!app) return ERROR_INVALID_PARAM;
 
     WIN32_FIND_DATA find_data;
     char search_path[MAX_PATH_LENGTH];
@@ -435,7 +435,7 @@ static void CALLBACK command_queue_timer_proc(HWND hwnd,
 */
 
 static ErrorCode process_command_queue(PlotAppReusable* app) {
-    if (!app) return ERROR_INVALID_PARAMETER;
+    if (!app) return ERROR_INVALID_PARAM;
 
     // Check command queue (like Python's __watch_for_command__)
     double command_data[3];

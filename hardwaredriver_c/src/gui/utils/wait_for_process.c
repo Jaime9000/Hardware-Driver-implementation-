@@ -4,7 +4,7 @@
 ErrorCode wait_process_done(HANDLE process, DWORD wait_time_ms) {
     if (!process) {
         log_error("Invalid process handle");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     while (TRUE) {

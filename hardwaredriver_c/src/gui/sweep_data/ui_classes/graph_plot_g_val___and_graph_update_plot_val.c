@@ -16,7 +16,7 @@ ErrorCode graph_update_plot_data(Graph* graph,
                                const DataPoints* y_points_frontal, 
                                const DataPoints* y_points_sagittal) {
     if (!graph || !y_points_frontal || !y_points_sagittal) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     // Use PlotData structure from graph_plot_window.h
@@ -68,7 +68,7 @@ ErrorCode graph_update_plot_data(Graph* graph,
 
 
 ErrorCode graph_plot_graph_values(Graph* graph) {
-    if (!graph) return ERROR_INVALID_PARAMETER;
+    if (!graph) return ERROR_INVALID_PARAM;
 
     // Create new graph plot window using existing implementation
     GraphPlotWindow* graph_window = graph_plot_window_create(

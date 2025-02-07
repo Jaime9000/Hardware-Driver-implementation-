@@ -30,7 +30,7 @@ void data_queue_destroy(DataQueue* queue) {
 }
 
 ErrorCode data_queue_put(DataQueue* queue, const double* data, size_t count) {
-    if (!queue || !data || count == 0) return ERROR_INVALID_PARAMETER;
+    if (!queue || !data || count == 0) return ERROR_INVALID_PARAM;
     
     EnterCriticalSection(&queue->lock);
 
@@ -52,7 +52,7 @@ ErrorCode data_queue_put(DataQueue* queue, const double* data, size_t count) {
 }
 
 ErrorCode data_queue_get(DataQueue* queue, double* data, size_t* count) {
-    if (!queue || !data || !count || *count == 0) return ERROR_INVALID_PARAMETER;
+    if (!queue || !data || !count || *count == 0) return ERROR_INVALID_PARAM;
 
     EnterCriticalSection(&queue->lock);
 

@@ -65,7 +65,7 @@ void print_document_destroy(PrintDocument* doc) {
 }
 
 ErrorCode print_document_begin(PrintDocument* doc, const char* description) {
-    if (!doc) return ERROR_INVALID_PARAMETER;
+    if (!doc) return ERROR_INVALID_PARAM;
 
     // Open printer
     if (!OpenPrinter(doc->printer_name, &doc->printer_handle, NULL)) {
@@ -124,7 +124,7 @@ ErrorCode print_document_begin(PrintDocument* doc, const char* description) {
 }
 
 ErrorCode print_document_end(PrintDocument* doc) {
-    if (!doc || doc->page == 0) return ERROR_INVALID_PARAMETER;
+    if (!doc || doc->page == 0) return ERROR_INVALID_PARAM;
 
     EndPage(doc->printer_dc);
     EndDoc(doc->printer_dc);
@@ -136,7 +136,7 @@ ErrorCode print_document_end(PrintDocument* doc) {
 }
 
 ErrorCode print_document_image(PrintDocument* doc, int x, int y, const char* image_path) {
-    if (!doc || !image_path) return ERROR_INVALID_PARAMETER;
+    if (!doc || !image_path) return ERROR_INVALID_PARAM;
 
     if (doc->page == 0) {
         ErrorCode result = print_document_begin(doc, "Print Job");

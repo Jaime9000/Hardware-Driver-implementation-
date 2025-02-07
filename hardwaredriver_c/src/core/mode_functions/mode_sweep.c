@@ -146,7 +146,7 @@ static const uint8_t* get_emg_config(const ModeBase* mode, size_t* length) {
 }
 
 static ErrorCode execute_mode(ModeBase* base, uint8_t* output, size_t* output_length) {
-    if (!base || !output || !output_length) return ERROR_INVALID_PARAMETER;
+    if (!base || !output || !output_length) return ERROR_INVALID_PARAM;
     
     ModeSweep* mode = (ModeSweep*)base->impl;
     
@@ -178,7 +178,7 @@ static ErrorCode execute_mode(ModeBase* base, uint8_t* output, size_t* output_le
 }
 
 static ErrorCode execute_mode_not_connected(ModeBase* base, uint8_t* output, size_t* output_length) {
-    if (!output || !output_length) return ERROR_INVALID_PARAMETER;
+    if (!output || !output_length) return ERROR_INVALID_PARAM;
 
     // Match Python's pattern: [0, 0, 1 << 4, 0, 2 << 4, 0, 3 << 4, 0] + [0] * 8
     static const uint8_t pattern[] = {
@@ -208,7 +208,7 @@ static const ModeBaseVTable mode_sweep_vtable = {
 
 // Core functionality implementation
 ErrorCode mode_sweep_compute_angle(double ref, double axis1, double axis2, double* result) {
-    if (!result) return ERROR_INVALID_PARAMETER;
+    if (!result) return ERROR_INVALID_PARAM;
     
     double sum = sqrt((axis1 * axis1) + (axis2 * axis2));
     if (sum == 0) {
@@ -224,7 +224,7 @@ ErrorCode mode_sweep_compute_angle(double ref, double axis1, double axis2, doubl
 }
 
 ErrorCode mode_sweep_compute_tilt_data(const uint8_t* tilt_values, double* front_angle, double* side_angle) {
-    if (!tilt_values || !front_angle || !side_angle) return ERROR_INVALID_PARAMETER;
+    if (!tilt_values || !front_angle || !side_angle) return ERROR_INVALID_PARAM;
 
     int16_t computed[4] = {0};
     
@@ -259,7 +259,7 @@ ErrorCode mode_sweep_compute_tilt_data(const uint8_t* tilt_values, double* front
 }
 
 ErrorCode mode_sweep_process_data(ModeSweep* mode, const uint8_t* data, size_t length) {
-    if (!mode || !data || length == 0) return ERROR_INVALID_PARAMETER;
+    if (!mode || !data || length == 0) return ERROR_INVALID_PARAM;
 
     SyncResult sync_result;
     sync_result_init(&sync_result);
@@ -274,7 +274,7 @@ ErrorCode mode_sweep_process_data(ModeSweep* mode, const uint8_t* data, size_t l
 
     if (!sync_result.found_sync || sync_result.synced_length == 0) {
         sync_result_free(&sync_result);
-        return ERROR_INVALID_DATA;
+        return ERROR_DATA_INVALID;
     }
 
     // Process tilt data for each block
@@ -303,7 +303,7 @@ ErrorCode mode_sweep_create(ModeSweep** mode, SerialInterface* interface,
                           ProcessManager* process_manager,
                           bool show_tilt_window, bool show_sweep_graph) {
     if (!mode || !interface || !process_manager) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     ModeSweep* new_mode = (ModeSweep*)calloc(1, sizeof(ModeSweep));
@@ -523,7 +523,7 @@ DWORD WINAPI sweep_process_function(LPVOID param) {
 }
 
 ErrorCode mode_sweep_start_process(ModeSweep* mode) {
-    if (!mode) return ERROR_INVALID_PARAMETER;
+    if (!mode) return ERROR_INVALID_PARAM;
 
     // Create queues if they don't exist
     if (!mode->sweep_queue) {
@@ -567,7 +567,7 @@ ErrorCode mode_sweep_start_process(ModeSweep* mode) {
 }
 
 ErrorCode mode_sweep_stop_process(ModeSweep* mode) {
-    if (!mode || !mode->sweep_process) return ERROR_INVALID_PARAMETER;
+    if (!mode || !mode->sweep_process) return ERROR_INVALID_PARAM;
 
     // Send stop command to process
     data_queue_put(mode->sweep_command_queue, "stop", NULL, NULL);

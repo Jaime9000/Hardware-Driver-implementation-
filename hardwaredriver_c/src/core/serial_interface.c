@@ -1,4 +1,4 @@
-#include "src/core/main/serial_interface.h"
+#include "src/core/serial_interface.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include "src/core/serial_interface.h"
 #include "src/core/error_codes.h"
-#include "src/core/utils/process_manager.h"
+#include "src/gui/utils/process_manager.h"
 #include "src/core/mode_functions/timing.h"
 
 typedef struct ModeBase ModeBase;

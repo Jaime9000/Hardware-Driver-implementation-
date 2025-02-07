@@ -1,6 +1,7 @@
 #ifndef PRINTER_DRIVER_H
 #define PRINTER_DRIVER_H
 
+#define WIN32_LEAN_AND_MEAN
 // System headers
 #include <windows.h>
 

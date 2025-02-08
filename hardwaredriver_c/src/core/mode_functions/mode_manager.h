@@ -12,6 +12,7 @@
 // Forward declarations
 typedef struct ModeManager ModeManager;
 typedef struct ModeEntry ModeEntry;
+typedef struct ControlFunctions ControlFunctions;
 
 // Function pointer types
 typedef ErrorCode (*ModeCreateFunc)(ModeBase** mode, 

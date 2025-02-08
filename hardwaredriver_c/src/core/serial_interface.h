@@ -248,4 +248,31 @@ bool serial_interface_get_cd_status(SerialInterface* interface);
  */
 bool serial_interface_get_ri_status(SerialInterface* interface);
 
+// Command management functions
+/**
+ * @brief Executes a command through the serial interface
+ * @param interface Pointer to SerialInterface
+ * @param command Command buffer to execute
+ * @param command_size Size of command buffer
+ * @param return_size Expected size of return data
+ * @param mode_manager Pointer to ModeManager instance
+ * @return ERROR_NONE on success, error code otherwise
+ */
+ErrorCode serial_interface_execute_command(SerialInterface* interface, 
+                                        const unsigned char* command,
+                                        size_t command_size,
+                                        size_t return_size,
+                                        ModeManager* mode_manager);
+
+/**
+ * @brief Registers a command handler with the serial interface
+ * @param interface Pointer to SerialInterface
+ * @param command Command to register
+ * @param execute_func Function to handle the command
+ * @return ERROR_NONE on success, error code otherwise
+ */
+ErrorCode serial_interface_register_command(SerialInterface* interface, 
+                                         IOCommand command,
+                                         ModeExecuteFunc execute_func);
+
 #endif // MYOTRONICS_SERIAL_INTERFACE_H

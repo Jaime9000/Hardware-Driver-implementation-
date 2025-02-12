@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <windows.h>
+#include <stdint.h>
 #include "src/core/error_codes.h"
 
 // Log levels matching Python's logging levels

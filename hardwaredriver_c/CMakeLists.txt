@@ -23,7 +23,7 @@ enable_language(C)
 # Windows-specific settings
 if(WIN32)
     # Add Windows-specific compile definitions
-    add_definitions(-DWIN32_LEAN_AND_MEAN)
+    # add_definitions(-DWIN32_LEAN_AND_MEAN)
     add_definitions(-D_WIN32_WINNT=0x0601)  # Target Windows 7 or later
 endif()
 

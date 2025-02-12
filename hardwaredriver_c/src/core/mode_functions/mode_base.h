@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include "src/core/serial_interface.h"
 #include "src/core/error_codes.h"
 #include "src/gui/utils/process_manager.h"

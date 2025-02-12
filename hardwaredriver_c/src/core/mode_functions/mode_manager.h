@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include "src/core/mode_functions/mode_base.h"
 #include "src/core/commands.h"
 #include "src/core/serial_interface.h"

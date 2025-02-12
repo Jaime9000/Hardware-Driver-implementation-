@@ -100,7 +100,7 @@ static const ModeVTable mode_43_vtable = {
 ErrorCode mode_43_raw_create(Mode43Raw** mode, SerialInterface* interface) {
     if (!mode || !interface) {
         log_error("Invalid parameters in mode_43_raw_create");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     Mode43Raw* new_mode = (Mode43Raw*)malloc(sizeof(Mode43Raw));

@@ -160,9 +160,9 @@ ErrorCode resync_bytes(const uint8_t* data,
                       size_t sync2_offset,
                       SyncResult* result) {
     if (!data || !result || !sync_func1 || length < block_size) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in resync_bytes");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     log_debug("Starting byte resync, data length: %zu, block size: %zu", length, block_size);

@@ -25,7 +25,7 @@ static const ModeVTable mode_44_sweep_vtable = {
 ErrorCode mode_44_sweep_create(Mode44Sweep** mode, SerialInterface* interface) {
     if (!mode || !interface) {
         log_error("Invalid parameters in mode_44_sweep_create");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     Mode44Sweep* new_mode = (Mode44Sweep*)malloc(sizeof(Mode44Sweep));

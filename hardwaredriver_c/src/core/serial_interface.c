@@ -91,7 +91,7 @@ void serial_interface_destroy(SerialInterface* interface) {
 ErrorCode serial_interface_open(SerialInterface* interface) {
     if (!interface) {
         log_error("Cannot open null interface");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     log_info("Opening serial port: %s", interface->port_name);
@@ -171,7 +171,7 @@ ErrorCode serial_interface_close(SerialInterface* interface) {
 static ErrorCode validate_interface(SerialInterface* interface) {
     if (!interface) {
         log_error("Null interface pointer");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     // Check if we can actually communicate with the serial port
@@ -238,7 +238,7 @@ ErrorCode serial_interface_write_data(SerialInterface* interface, const unsigned
 
     if (!data || length == 0) {
         log_error("Invalid write parameters");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     log_debug("Writing %zu bytes to serial port", length);
@@ -275,7 +275,7 @@ ErrorCode serial_interface_read_data(SerialInterface* interface, unsigned char* 
 
     if (!buffer || !bytes_read || max_length == 0) {
         log_error("Invalid read parameters");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     log_debug("Attempting to read up to %zu bytes", max_length);
@@ -552,7 +552,7 @@ ErrorCode serial_interface_control_statuses(SerialInterface* interface, char* st
 
 ErrorCode serial_interface_get_current_freq_config(SerialInterface* interface, int* frequency) {
     if (!interface || !frequency) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     FILE* file = fopen(interface->config->freq_config_path, "r");
@@ -581,12 +581,12 @@ ErrorCode serial_interface_get_current_freq_config(SerialInterface* interface, i
 
 ErrorCode serial_interface_set_current_freq_config(SerialInterface* interface, int frequency) {
     if (!interface) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     if (frequency != 50 && frequency != 60) {
         log_error("Invalid frequency value: %d", frequency);
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     FILE* file = fopen(interface->config->freq_config_path, "w");
@@ -750,7 +750,7 @@ ErrorCode serial_interface_get_emg_version(SerialInterface* interface, char* ver
     }
 
     if (!version_string || max_length == 0) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     // Send version request command
@@ -784,7 +784,7 @@ ErrorCode serial_interface_get_equipment_byte(SerialInterface* interface, unsign
     }
 
     if (!equipment_byte) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     // Send equipment byte request command
@@ -814,8 +814,8 @@ ErrorCode serial_interface_execute_command(SerialInterface* interface,
                                          size_t command_size,
                                          ModeManager* mode_manager) {
     if (!interface || !command || !mode_manager) {
-        set_last_error(ERROR_INVALID_PARAMETER);
-        return ERROR_INVALID_PARAMETER;
+        set_last_error(ERROR_INVALID_PARAM);
+        return ERROR_INVALID_PARAM;
     }
 
     // Parse command and return size
@@ -852,8 +852,8 @@ ErrorCode serial_interface_register_command(SerialInterface* interface,
                                           IOCommand command,
                                           ModeExecuteFunc execute_func) {
     if (!interface || !execute_func) {
-        set_last_error(ERROR_INVALID_PARAMETER);
-        return ERROR_INVALID_PARAMETER;
+        set_last_error(ERROR_INVALID_PARAM);
+        return ERROR_INVALID_PARAM;
     }
 
     EnterCriticalSection(&interface->mutex);

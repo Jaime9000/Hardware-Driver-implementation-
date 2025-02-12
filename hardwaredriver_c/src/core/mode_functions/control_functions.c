@@ -11,9 +11,9 @@
 
 ErrorCode control_functions_init(ControlFunctions* control, SerialInterface* serial_interface) {
     if (!control || !serial_interface) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in control_functions_init");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     control->serial_interface = serial_interface;
@@ -34,9 +34,9 @@ void control_functions_destroy(ControlFunctions* control) {
 
 ErrorCode control_functions_usb_data_on(ControlFunctions* control, bool disconnected) {
     if (!control || !control->serial_interface) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in usb_data_on");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     if (disconnected) {
@@ -58,9 +58,9 @@ ErrorCode control_functions_usb_data_on(ControlFunctions* control, bool disconne
 
 ErrorCode control_functions_usb_data_off(ControlFunctions* control, bool disconnected) {
     if (!control || !control->serial_interface) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in usb_data_off");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     if (disconnected) {
@@ -82,9 +82,9 @@ ErrorCode control_functions_usb_data_off(ControlFunctions* control, bool disconn
 
 ErrorCode control_functions_usb_control_on(ControlFunctions* control, bool disconnected) {
     if (!control || !control->serial_interface) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in usb_control_on");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     if (disconnected) {
@@ -106,9 +106,9 @@ ErrorCode control_functions_usb_control_on(ControlFunctions* control, bool disco
 
 ErrorCode control_functions_usb_control_off(ControlFunctions* control, bool disconnected) {
     if (!control || !control->serial_interface) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in usb_control_off");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     if (disconnected) {
@@ -130,9 +130,9 @@ ErrorCode control_functions_usb_control_off(ControlFunctions* control, bool disc
 
 ErrorCode control_functions_reset_hardware(ControlFunctions* control, bool is_60hz, bool disconnected) {
     if (!control || !control->serial_interface) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in reset_hardware");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     if (disconnected) {
@@ -154,9 +154,9 @@ ErrorCode control_functions_reset_hardware(ControlFunctions* control, bool is_60
 
 ErrorCode control_functions_device_statuses(ControlFunctions* control, bool disconnected) {
     if (!control || !control->serial_interface) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in device_statuses");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     if (disconnected) {
@@ -178,9 +178,9 @@ ErrorCode control_functions_device_statuses(ControlFunctions* control, bool disc
 
 ErrorCode control_functions_execute(ControlFunctions* control, int command_type, bool disconnected) {
     if (!control) {
-        set_last_error(ERROR_INVALID_PARAMETER);
+        set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid control parameter in execute");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     log_debug("Executing control function command: %d", command_type);

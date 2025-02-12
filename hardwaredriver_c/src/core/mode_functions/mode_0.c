@@ -137,7 +137,7 @@ void mode_0_destroy(Mode0* mode) {
 ErrorCode mode_0_process_values(Mode0* mode, const uint8_t* values, int16_t* data_array) {
     if (!mode || !values || !data_array) {
         log_error("Invalid parameters in mode_0_process_values");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     for (int i = 0; i < MODE_0_CHANNEL_COUNT; i++) {
@@ -163,7 +163,7 @@ ErrorCode mode_0_process_values(Mode0* mode, const uint8_t* values, int16_t* dat
 ErrorCode mode_0_raw_create(Mode0Raw** mode, SerialInterface* interface, ProcessManager* process_manager) {
     if (!mode || !interface) {
         log_error("Invalid parameters in mode_0_raw_create");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     Mode0Raw* new_mode = (Mode0Raw*)malloc(sizeof(Mode0Raw));
@@ -227,7 +227,7 @@ static bool wait_for_init(const uint8_t* data, size_t length) {
 ErrorCode mode_0_raw_execute(Mode0Raw* mode, uint8_t* output, size_t* output_length) {
     if (!mode || !output || !output_length) {
         log_error("Invalid parameters in mode_0_raw_execute");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     uint8_t read_buffer[1600];

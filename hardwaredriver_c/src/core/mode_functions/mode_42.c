@@ -232,7 +232,7 @@ static const ModeBaseVTable mode_42_lead_status_vtable = {
 static ErrorCode mode_42_create_base(Mode42** mode, SerialInterface* interface, 
                                    ProcessManager* process_manager, Mode42Type type) {
     if (!mode || !interface || !process_manager) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     Mode42* new_mode = (Mode42*)malloc(sizeof(Mode42));
@@ -265,7 +265,7 @@ ErrorCode mode_42_raw_emg_create(Mode42** mode, SerialInterface* interface, Proc
 ErrorCode mode_42_equipment_create(EquipmentByte** mode, SerialInterface* interface, ProcessManager* process_manager) {
     if (!mode || !interface || !process_manager) {
         log_error("Invalid parameters in mode_42_equipment_create");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     EquipmentByte* new_mode = (EquipmentByte*)malloc(sizeof(EquipmentByte));
@@ -290,7 +290,7 @@ ErrorCode mode_42_equipment_create(EquipmentByte** mode, SerialInterface* interf
 ErrorCode mode_42_lead_status_create(GetEMGLeadStatus** mode, SerialInterface* interface, ProcessManager* process_manager) {
     if (!mode || !interface || !process_manager) {
         log_error("Invalid parameters in emg_lead_status_create");
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     GetEMGLeadStatus* new_mode = (GetEMGLeadStatus*)malloc(sizeof(GetEMGLeadStatus));
@@ -323,7 +323,7 @@ ErrorCode mode_42_lead_status_create(GetEMGLeadStatus** mode, SerialInterface* i
 ErrorCode mode_42_raw_notch_create(Mode42** mode, SerialInterface* interface, 
                                  ProcessManager* process_manager, Mode42Type notch_type) {
     if (notch_type < MODE_42_TYPE_NOTCH_P || notch_type > MODE_42_TYPE_NOTCH_W) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
     return mode_42_create_base(mode, interface, process_manager, notch_type);
 }

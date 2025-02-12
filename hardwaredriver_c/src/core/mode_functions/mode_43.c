@@ -107,7 +107,7 @@ static ErrorCode execute_mode_not_connected(ModeBase* base, uint8_t* output, siz
     
     // Check if output buffer is large enough
     if (total_size > *output_length) {
-        return ERROR_BUFFER_OVERFLOW;
+        return ERROR_BUFF_OVERFLOW;
     }
 
     // Flatten the 2D array into the output buffer
@@ -138,7 +138,7 @@ static const ModeVTable mode_43_vtable = {
 static ErrorCode mode_43_create_base(Mode43** mode, SerialInterface* interface, 
                                    ProcessManager* process_manager, Mode43Type type) {
     if (!mode || !interface || !process_manager) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
 
     Mode43* new_mode = (Mode43*)malloc(sizeof(Mode43));
@@ -171,7 +171,7 @@ ErrorCode mode_43_raw_emg_create(Mode43** mode, SerialInterface* interface, Proc
 ErrorCode mode_43_raw_notch_create(Mode43** mode, SerialInterface* interface, 
                                  ProcessManager* process_manager, Mode43Type notch_type) {
     if (notch_type < MODE_43_TYPE_NOTCH_P || notch_type > MODE_43_TYPE_NOTCH_W) {
-        return ERROR_INVALID_PARAMETER;
+        return ERROR_INVALID_PARAM;
     }
     return mode_43_create_base(mode, interface, process_manager, notch_type);
 }

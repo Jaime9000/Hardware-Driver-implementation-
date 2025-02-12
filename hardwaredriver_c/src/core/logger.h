@@ -1,9 +1,11 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include <stdio.h>
-#include <windows.h>
-#include <stdint.h>
+#include <stdio.h>     // for FILE*, fprintf, etc.
+#include <windows.h>   // for SYSTEMTIME, MAX_PATH
+#include <stdint.h>    // for uint8_t
+#include <stdlib.h>    // for malloc/free
+#include <stdarg.h>    // for va_list and variadic functions
 #include "src/core/error_codes.h"
 
 // Log levels matching Python's logging levels

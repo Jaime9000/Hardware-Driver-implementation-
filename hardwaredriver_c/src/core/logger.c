@@ -2,10 +2,12 @@
 #include "src/core/error_codes.h"
 
 // System headers
-#include <stdio.h>
-#include <time.h>
-#include <stdarg.h>
-#include <string.h>
+// System headers
+#include <stdio.h>    // for file operations
+#include <stdlib.h>   // for malloc/free
+#include <stdarg.h>   // for va_list
+#include <string.h>   // for strncpy
+#include <time.h>     // for time functions
 
 static Logger* g_logger = NULL;
 

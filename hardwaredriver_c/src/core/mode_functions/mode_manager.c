@@ -1,6 +1,7 @@
 #include "src/core/mode_functions/mode_manager.h"
 #include "src/core/logger.h"
 #include "src/core/mode_functions/control_functions.h"
+#include "src/core/serial_interface.h"
 
 // Mode includes with full paths
 #include "src/core/mode_functions/mode_0.h"

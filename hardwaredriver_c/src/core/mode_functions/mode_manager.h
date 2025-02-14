@@ -12,6 +12,7 @@
 #include "src/gui/utils/process_manager.h"
 
 // Forward declarations
+typedef struct SerialInterface SerialInterface; 
 typedef struct ModeManager ModeManager;
 typedef struct ModeEntry ModeEntry;
 typedef struct ControlFunctions ControlFunctions;

@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include "src/core/mode_functions/mode_base.h"
+//#include "src/core/mode_functions/mode_base.h"
 #include "src/core/commands.h"
-#include "src/core/serial_interface.h"
+//#include "src/core/serial_interface.h"
 #include "src/core/error_codes.h"
 #include "src/gui/sweep_data/namespace_options.h"
 #include "src/gui/utils/process_manager.h"
@@ -16,6 +16,7 @@ typedef struct SerialInterface SerialInterface;
 typedef struct ModeManager ModeManager;
 typedef struct ModeEntry ModeEntry;
 typedef struct ControlFunctions ControlFunctions;
+typedef struct ModeBase ModeBase;
 
 // Function pointer types
 typedef ErrorCode (*ModeCreateFunc)(ModeBase** mode, 

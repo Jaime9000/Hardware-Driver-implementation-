@@ -49,7 +49,7 @@ static ErrorCode resize_mode_entries(ModeManager* manager) {
 }
 
 ErrorCode mode_manager_create(ModeManager** manager, 
-                            SerialInterface* interface,
+                            SerialInterface*serial_interface,
                             ProcessManager* process_manager) {
     if (!manager || !interface || !process_manager) {
         set_last_error(ERROR_INVALID_PARAM);
@@ -73,7 +73,7 @@ ErrorCode mode_manager_create(ModeManager** manager,
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    new_manager->serial_interface = interface;
+    new_manager->serial_interface =serial_interface;
 
     new_manager->namespace = process_manager_get_namespace(process_manager);
     new_manager->process_manager = process_manager_create(new_manager->namespace);

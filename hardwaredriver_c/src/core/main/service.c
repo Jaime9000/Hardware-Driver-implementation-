@@ -28,7 +28,7 @@ ServiceContext* service_create(Config* config) {
         return NULL;
     }
 
-    // Create serial interface
+    // Create serialserial_interface
     service->serial_interface = serial_interface_create(config);
     if (!service->serial_interface) {
         process_manager_destroy(service->process_manager);

@@ -12,7 +12,7 @@ typedef struct {
 } Mode44Sweep;
 
 // Constructor/Destructor
-ErrorCode mode_44_sweep_create(Mode44Sweep** mode, SerialInterface* interface);
+ErrorCode mode_44_sweep_create(Mode44Sweep** mode, SerialInterface*serial_interface);
 void mode_44_sweep_destroy(Mode44Sweep* mode);
 
 #endif // MODE_44_SWEEP_SCAN_H

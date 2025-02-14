@@ -30,7 +30,7 @@ ServiceContext* service_create(Config* config) {
     service->stream_thread = NULL;
     InitializeCriticalSection(&service->stream_lock);
     
-    // Create serial interface
+    // Create serialserial_interface
     service->serial_interface = serial_interface_create(config);
     if (!service->serial_interface) {
         DeleteCriticalSection(&service->stream_lock);

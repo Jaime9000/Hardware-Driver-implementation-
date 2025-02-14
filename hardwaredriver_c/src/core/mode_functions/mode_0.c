@@ -105,7 +105,7 @@ static const ModeBaseVTable mode_0_vtable = {
     .destroy = mode_0_destroy_impl
 };
 
-ErrorCode mode_0_create(ModeBase** mode, SerialInterface* interface, ProcessManager* process_manager) {
+ErrorCode mode_0_create(ModeBase** mode, SerialInterface*serial_interface, ProcessManager* process_manager) {
     Mode0* impl = (Mode0*)malloc(sizeof(Mode0));
     if (!impl) {
         log_error("Failed to allocate Mode0");
@@ -118,7 +118,7 @@ ErrorCode mode_0_create(ModeBase** mode, SerialInterface* interface, ProcessMana
     impl->has_prev_data = false;
     impl->is_first_run = true;
     
-    ErrorCode error = mode_base_create(mode, interface, process_manager, &mode_0_vtable, impl);
+    ErrorCode error = mode_base_create(mode,serial_interface, process_manager, &mode_0_vtable, impl);
     if (error != ERROR_NONE) {
         free(impl);
         return error;
@@ -160,7 +160,7 @@ ErrorCode mode_0_process_values(Mode0* mode, const uint8_t* values, int16_t* dat
     return ERROR_NONE;
 }
 
-ErrorCode mode_0_raw_create(Mode0Raw** mode, SerialInterface* interface, ProcessManager* process_manager) {
+ErrorCode mode_0_raw_create(Mode0Raw** mode, SerialInterface*serial_interface, ProcessManager* process_manager) {
     if (!mode || !interface) {
         log_error("Invalid parameters in mode_0_raw_create");
         return ERROR_INVALID_PARAM;
@@ -172,7 +172,7 @@ ErrorCode mode_0_raw_create(Mode0Raw** mode, SerialInterface* interface, Process
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    ErrorCode error = mode_0_create(&new_mode->base, interface, process_manager);
+    ErrorCode error = mode_0_create(&new_mode->base,serial_interface, process_manager);
     if (error != ERROR_NONE) {
         free(new_mode);
         return error;
@@ -333,14 +333,14 @@ static const ModeBaseVTable mode_0_align_vtable = {
     .destroy = mode_0_align_destroy_impl
 };
 
-ErrorCode mode_0_align_create(Mode0Align** mode, SerialInterface* interface, ProcessManager* process_manager) {
+ErrorCode mode_0_align_create(Mode0Align** mode, SerialInterface*serial_interface, ProcessManager* process_manager) {
     Mode0Align* new_mode = (Mode0Align*)malloc(sizeof(Mode0Align));
     if (!new_mode) {
         log_error("Failed to allocate Mode0Align");
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    ErrorCode error = mode_0_create(&new_mode->base, interface, process_manager);
+    ErrorCode error = mode_0_create(&new_mode->base,serial_interface, process_manager);
     if (error != ERROR_NONE) {
         free(new_mode);
         return error;

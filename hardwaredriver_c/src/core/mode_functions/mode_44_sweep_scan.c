@@ -22,7 +22,7 @@ static const ModeVTable mode_44_sweep_vtable = {
     .execute_not_connected = mode_sweep_execute_not_connected
 };
 
-ErrorCode mode_44_sweep_create(Mode44Sweep** mode, SerialInterface* interface) {
+ErrorCode mode_44_sweep_create(Mode44Sweep** mode, SerialInterface*serial_interface) {
     if (!mode || !interface) {
         log_error("Invalid parameters in mode_44_sweep_create");
         return ERROR_INVALID_PARAM;
@@ -35,7 +35,7 @@ ErrorCode mode_44_sweep_create(Mode44Sweep** mode, SerialInterface* interface) {
     }
 
     // Initialize base ModeSweep with show_sweep_graph=true and show_tilt_window=false
-    ErrorCode error = mode_sweep_init(&new_mode->base, interface, &mode_44_sweep_vtable, new_mode, 
+    ErrorCode error = mode_sweep_init(&new_mode->base,serial_interface, &mode_44_sweep_vtable, new_mode, 
                                     /* show_tilt_window= */ false,
                                     /* show_sweep_graph= */ true);
     if (error != ERROR_NONE) {

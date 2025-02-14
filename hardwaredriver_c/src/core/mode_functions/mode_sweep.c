@@ -299,7 +299,7 @@ ErrorCode mode_sweep_process_data(ModeSweep* mode, const uint8_t* data, size_t l
 }
 
 // Constructor/Destructor implementation
-ErrorCode mode_sweep_create(ModeSweep** mode, SerialInterface* interface, 
+ErrorCode mode_sweep_create(ModeSweep** mode, SerialInterface*serial_interface, 
                           ProcessManager* process_manager,
                           bool show_tilt_window, bool show_sweep_graph) {
     if (!mode || !interface || !process_manager) {
@@ -311,7 +311,7 @@ ErrorCode mode_sweep_create(ModeSweep** mode, SerialInterface* interface,
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    ErrorCode error = mode_base_create(&new_mode->base, interface, process_manager,
+    ErrorCode error = mode_base_create(&new_mode->base,serial_interface, process_manager,
                                      &mode_sweep_vtable, new_mode);
     if (error != ERROR_NONE) {
         free(new_mode);

@@ -8,14 +8,14 @@
 #define FLUSH_TIMEOUT_MS 80
 #define READ_CHUNK_SIZE 320
 
-ErrorCode mode_init(Mode* mode, SerialInterface* interface, const ModeVTable* vtable, void* impl) {
+ErrorCode mode_init(Mode* mode, SerialInterface*serial_interface, const ModeVTable* vtable, void* impl) {
     if (!mode || !interface || !vtable || !impl) {
         set_last_error(ERROR_INVALID_PARAM);
         log_error("Invalid parameters in mode_init");
         return ERROR_INVALID_PARAM;
     }
 
-    mode->interface = interface;
+    mode->interface =serial_interface;
     mode->vtable = vtable;
     mode->impl = impl;
     mode->handshake_established = false;

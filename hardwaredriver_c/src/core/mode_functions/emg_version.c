@@ -91,7 +91,7 @@ static const ModeBaseVTable emg_version_vtable = {
     .destroy = emg_version_destroy_impl
 };
 
-ErrorCode emg_version_create(ModeBase** mode, SerialInterface* interface, ProcessManager* process_manager) {
+ErrorCode emg_version_create(ModeBase** mode, SerialInterface*serial_interface, ProcessManager* process_manager) {
     EMGVersionImpl* impl = (EMGVersionImpl*)malloc(sizeof(EMGVersionImpl));
     if (!impl) {
         log_error("Failed to allocate EMGVersionImpl");
@@ -100,7 +100,7 @@ ErrorCode emg_version_create(ModeBase** mode, SerialInterface* interface, Proces
     
     memset(impl->version_string, 0, VERSION_STRING_MAX_LENGTH);
     
-    ErrorCode error = mode_base_create(mode, interface, process_manager, &emg_version_vtable, impl);
+    ErrorCode error = mode_base_create(mode,serial_interface, process_manager, &emg_version_vtable, impl);
     if (error != ERROR_NONE) {
         free(impl);
         return error;
@@ -134,7 +134,7 @@ static const ModeBaseVTable hardware_connection_vtable = {
     .destroy = emg_version_destroy_impl
 };
 
-ErrorCode hardware_connection_create(ModeBase** mode, SerialInterface* interface, ProcessManager* process_manager) {
+ErrorCode hardware_connection_create(ModeBase** mode, SerialInterface*serial_interface, ProcessManager* process_manager) {
     EMGVersionImpl* impl = (EMGVersionImpl*)malloc(sizeof(EMGVersionImpl));
     if (!impl) {
         log_error("Failed to allocate EMGVersionImpl for hardware connection");
@@ -143,7 +143,7 @@ ErrorCode hardware_connection_create(ModeBase** mode, SerialInterface* interface
     
     memset(impl->version_string, 0, VERSION_STRING_MAX_LENGTH);
     
-    ErrorCode error = mode_base_create(mode, interface, process_manager, &hardware_connection_vtable, impl);
+    ErrorCode error = mode_base_create(mode,serial_interface, process_manager, &hardware_connection_vtable, impl);
     if (error != ERROR_NONE) {
         free(impl);
         return error;

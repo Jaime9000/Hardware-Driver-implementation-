@@ -37,11 +37,11 @@ void sync_result_init(SyncResult* result);
 void sync_result_free(SyncResult* result);
 
 // Function declarations
-ErrorCode byte_sync_read_until(SerialInterface* interface, 
+ErrorCode byte_sync_read_until(SerialInterface*serial_interface, 
                              uint8_t target_byte,
                              size_t* bytes_skipped);
 
-ErrorCode byte_sync_read_until_sequence(SerialInterface* interface,
+ErrorCode byte_sync_read_until_sequence(SerialInterface*serial_interface,
                                       const uint8_t* sequence,
                                       size_t sequence_length,
                                       size_t* bytes_skipped);

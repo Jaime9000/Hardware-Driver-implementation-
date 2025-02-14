@@ -19,7 +19,7 @@ typedef struct {
 } Mode53Raw;
 
 // Constructor/Destructor
-ErrorCode mode_53_raw_create(Mode53Raw** mode, SerialInterface* interface, ProcessManager* process_manager);
+ErrorCode mode_53_raw_create(Mode53Raw** mode, SerialInterface*serial_interface, ProcessManager* process_manager);
 void mode_53_raw_destroy(Mode53Raw* mode);
 
 #endif // MODE_53_H

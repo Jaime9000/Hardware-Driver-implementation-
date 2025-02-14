@@ -97,7 +97,7 @@ static const ModeVTable mode_43_vtable = {
     .destroy = NULL
 };
 
-ErrorCode mode_43_raw_create(Mode43Raw** mode, SerialInterface* interface) {
+ErrorCode mode_43_raw_create(Mode43Raw** mode, SerialInterface*serial_interface) {
     if (!mode || !interface) {
         log_error("Invalid parameters in mode_43_raw_create");
         return ERROR_INVALID_PARAM;
@@ -109,7 +109,7 @@ ErrorCode mode_43_raw_create(Mode43Raw** mode, SerialInterface* interface) {
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    ErrorCode error = mode_init(&new_mode->base, interface, &mode_43_vtable, new_mode);
+    ErrorCode error = mode_init(&new_mode->base,serial_interface, &mode_43_vtable, new_mode);
     if (error != ERROR_NONE) {
         free(new_mode);
         return error;

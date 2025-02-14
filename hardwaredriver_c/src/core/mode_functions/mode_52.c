@@ -104,7 +104,7 @@ static const ModeBaseVTable mode_52_vtable = {
     .destroy = NULL
 };
 
-ErrorCode mode_52_raw_create(Mode52Raw** mode, SerialInterface* interface, ProcessManager* process_manager) {
+ErrorCode mode_52_raw_create(Mode52Raw** mode, SerialInterface*serial_interface, ProcessManager* process_manager) {
     if (!mode || !interface || !process_manager) {
         log_error("Invalid parameters in mode_52_raw_create");
         return ERROR_INVALID_PARAM;
@@ -116,7 +116,7 @@ ErrorCode mode_52_raw_create(Mode52Raw** mode, SerialInterface* interface, Proce
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    ErrorCode error = mode_base_create(&new_mode->base, interface, process_manager,
+    ErrorCode error = mode_base_create(&new_mode->base,serial_interface, process_manager,
                                      &mode_52_vtable, new_mode);
     if (error != ERROR_NONE) {
         free(new_mode);

@@ -15,10 +15,10 @@ typedef struct {
 } EMGVersionImpl;
 
 // Base EMG Version mode
-ErrorCode emg_version_create(ModeBase** mode, SerialInterface* interface, ProcessManager* process_manager);
+ErrorCode emg_version_create(ModeBase** mode, SerialInterface*serial_interface, ProcessManager* process_manager);
 void emg_version_destroy(ModeBase* mode);
 
 // Hardware connection check variant
-ErrorCode hardware_connection_create(ModeBase** mode, SerialInterface* interface, ProcessManager* process_manager);
+ErrorCode hardware_connection_create(ModeBase** mode, SerialInterface*serial_interface, ProcessManager* process_manager);
 
 #endif // EMG_VERSION_H

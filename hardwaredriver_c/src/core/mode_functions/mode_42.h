@@ -52,11 +52,11 @@ typedef struct {
 } GetEMGLeadStatus;
 
 // Constructors for different variants
-ErrorCode mode_42_raw_create(Mode42** mode, SerialInterface* interface, ProcessManager* process_manager);
-ErrorCode mode_42_raw_emg_create(Mode42** mode, SerialInterface* interface, ProcessManager* process_manager);
-ErrorCode mode_42_equipment_create(EquipmentByte** mode, SerialInterface* interface, ProcessManager* process_manager);
-ErrorCode mode_42_lead_status_create(GetEMGLeadStatus** mode, SerialInterface* interface, ProcessManager* process_manager);
-ErrorCode mode_42_raw_notch_create(Mode42** mode, SerialInterface* interface, ProcessManager* process_manager, Mode42Type notch_type);
+ErrorCode mode_42_raw_create(Mode42** mode, SerialInterface*serial_interface, ProcessManager* process_manager);
+ErrorCode mode_42_raw_emg_create(Mode42** mode, SerialInterface*serial_interface, ProcessManager* process_manager);
+ErrorCode mode_42_equipment_create(EquipmentByte** mode, SerialInterface*serial_interface, ProcessManager* process_manager);
+ErrorCode mode_42_lead_status_create(GetEMGLeadStatus** mode, SerialInterface*serial_interface, ProcessManager* process_manager);
+ErrorCode mode_42_raw_notch_create(Mode42** mode, SerialInterface*serial_interface, ProcessManager* process_manager, Mode42Type notch_type);
 
 // Destructors
 void mode_42_destroy(Mode42* mode);

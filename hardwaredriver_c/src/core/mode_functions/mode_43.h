@@ -39,9 +39,9 @@ typedef struct {
 
 */
 // Constructors for different variants
-ErrorCode mode_43_raw_create(Mode43** mode, SerialInterface* interface, ProcessManager* process_manager);
-ErrorCode mode_43_raw_emg_create(Mode43** mode, SerialInterface* interface, ProcessManager* process_manager);
-ErrorCode mode_43_raw_notch_create(Mode43** mode, SerialInterface* interface, ProcessManager* process_manager, Mode43Type notch_type);
+ErrorCode mode_43_raw_create(Mode43** mode, SerialInterface*serial_interface, ProcessManager* process_manager);
+ErrorCode mode_43_raw_emg_create(Mode43** mode, SerialInterface*serial_interface, ProcessManager* process_manager);
+ErrorCode mode_43_raw_notch_create(Mode43** mode, SerialInterface*serial_interface, ProcessManager* process_manager, Mode43Type notch_type);
 
 // Destructor
 void mode_43_destroy(Mode43* mode);

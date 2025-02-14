@@ -114,7 +114,7 @@ target_link_libraries(myotronics_driver_lib
         winhttp          # HTTP server functionality
         ws2_32          # Windows sockets
         kernel32        # Core Windows functionality
-        user32          # User interface functionality
+        user32          # Userserial_interface functionality
         advapi32        # Advanced Windows functionality (registry, security)
         setupapi        # Device setup and configuration
         shell32         # Shell functionality

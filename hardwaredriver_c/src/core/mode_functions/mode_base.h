@@ -22,7 +22,7 @@ typedef struct {
 } ModeBaseVTable;
 
 struct ModeBase {
-    SerialInterface* interface;
+    SerialInterface* serial_interface;
     ProcessManager* process_manager;
     const ModeBaseVTable* vtable;
     void* impl;
@@ -31,7 +31,7 @@ struct ModeBase {
 };
 
 // Constructor/Destructor
-ErrorCode mode_base_create(ModeBase** mode, SerialInterface* interface, 
+ErrorCode mode_base_create(ModeBase** mode, SerialInterface* serial_interface, 
                          ProcessManager* process_manager, const ModeBaseVTable* vtable, void* impl);
 void mode_base_destroy(ModeBase* mode);
 

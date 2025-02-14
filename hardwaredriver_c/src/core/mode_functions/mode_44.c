@@ -99,7 +99,7 @@ static const ModeVTable mode_44_no_image_vtable = {
     .execute_not_connected = mode_sweep_execute_not_connected
 };
 
-ErrorCode mode_44_raw_create(Mode44Raw** mode, SerialInterface* interface) {
+ErrorCode mode_44_raw_create(Mode44Raw** mode, SerialInterface*serial_interface) {
     if (!mode || !interface) {
         log_error("Invalid parameters in mode_44_raw_create");
         return ERROR_INVALID_PARAM;
@@ -112,7 +112,7 @@ ErrorCode mode_44_raw_create(Mode44Raw** mode, SerialInterface* interface) {
     }
 
     // Initialize as Mode57Raw
-    ErrorCode error = mode_57_raw_create((Mode57Raw**)&new_mode, interface);
+    ErrorCode error = mode_57_raw_create((Mode57Raw**)&new_mode,serial_interface);
     if (error != ERROR_NONE) {
         free(new_mode);
         return error;
@@ -133,7 +133,7 @@ void mode_44_raw_destroy(Mode44Raw* mode) {
     }
 }
 
-ErrorCode mode_44_raw_no_image_create(Mode44RawNoImage** mode, SerialInterface* interface) {
+ErrorCode mode_44_raw_no_image_create(Mode44RawNoImage** mode, SerialInterface*serial_interface) {
     if (!mode || !interface) {
         log_error("Invalid parameters in mode_44_raw_no_image_create");
         return ERROR_INVALID_PARAM;
@@ -146,7 +146,7 @@ ErrorCode mode_44_raw_no_image_create(Mode44RawNoImage** mode, SerialInterface* 
     }
 
     // Initialize as Mode57RawNoImage
-    ErrorCode error = mode_57_raw_no_image_create((Mode57RawNoImage**)&new_mode, interface);
+    ErrorCode error = mode_57_raw_no_image_create((Mode57RawNoImage**)&new_mode,serial_interface);
     if (error != ERROR_NONE) {
         free(new_mode);
         return error;

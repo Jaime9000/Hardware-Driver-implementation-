@@ -5,36 +5,36 @@
 #include <cJSON.h>
 
 // Helper function declarations
-static ErrorCode configure_serial_port(SerialInterface* interface);
-static ErrorCode set_timeouts(SerialInterface* interface);
-static ErrorCode perform_handshake_attempt(SerialInterface* interface, const char* handshake_string);
-static ErrorCode read_until_empty(SerialInterface* interface);
-static ErrorCode validate_interface(SerialInterface* interface);
+static ErrorCode configure_serial_port(SerialInterface*serial_interface);
+static ErrorCode set_timeouts(SerialInterface*serial_interface);
+static ErrorCode perform_handshake_attempt(SerialInterface*serial_interface, const char* handshake_string);
+static ErrorCode read_until_empty(SerialInterface*serial_interface);
+static ErrorCode validate_interface(SerialInterface*serial_interface);
 
 SerialInterface* serial_interface_create(Config* config) {
     if (!config) {
-        log_error("Cannot create serial interface: NULL config");
+        log_error("Cannot create serialserial_interface: NULL config");
         return NULL;
     }
 
-    SerialInterface* interface = (SerialInterface*)malloc(sizeof(SerialInterface));
+    SerialInterface*serial_interface = (SerialInterface*)malloc(sizeof(SerialInterface));
     if (!interface) {
-        log_error("Failed to allocate memory for serial interface");
+        log_error("Failed to allocate memory for serialserial_interface");
         return NULL;
     }
 
     // Initialize basic members
-    interface->handle = INVALID_HANDLE_VALUE;
+   serial_interface->handle = INVALID_HANDLE_VALUE;
     InitializeCriticalSection(&interface->mutex);
-    interface->config = config;
-    interface->is_connected = false;
-    interface->handshake_established = false;
-    interface->baud_rate = FAST_BAUD_RATE;
-    interface->logger = config->logger;
+   serial_interface->config = config;
+   serial_interface->is_connected = false;
+   serial_interface->handshake_established = false;
+   serial_interface->baud_rate = FAST_BAUD_RATE;
+   serial_interface->logger = config->logger;
 
     // Initialize command maps
-    interface->command_maps = NULL;
-    interface->command_count = 0;
+   serial_interface->command_maps = NULL;
+   serial_interface->command_count = 0;
 
     // Get port name from config
     const char* port_name = config_get_port_name(config);
@@ -56,7 +56,7 @@ SerialInterface* serial_interface_create(Config* config) {
         return NULL;
     }
 
-    interface->port_name = _strdup(port_name);
+   serial_interface->port_name = _strdup(port_name);
     if (!interface->port_name) {
         log_error("Failed to allocate memory for port name");
         DeleteCriticalSection(&interface->mutex);
@@ -64,13 +64,13 @@ SerialInterface* serial_interface_create(Config* config) {
         return NULL;
     }
 
-    log_debug("Serial interface created successfully for port %s", interface->port_name);
-    return interface;
+    log_debug("Serialserial_interface created successfully for port %s",serial_interface->port_name);
+    returnserial_interface;
 }
 
-void serial_interface_destroy(SerialInterface* interface) {
+void serial_interface_destroy(SerialInterface*serial_interface) {
     if (interface) {
-        log_debug("Destroying serial interface");
+        log_debug("Destroying serialserial_interface");
         EnterCriticalSection(&interface->mutex);
         
         if (interface->is_connected) {
@@ -88,13 +88,13 @@ void serial_interface_destroy(SerialInterface* interface) {
     }
 }
 
-ErrorCode serial_interface_open(SerialInterface* interface) {
+ErrorCode serial_interface_open(SerialInterface*serial_interface) {
     if (!interface) {
-        log_error("Cannot open null interface");
+        log_error("Cannot open nullserial_interface");
         return ERROR_INVALID_PARAM;
     }
 
-    log_info("Opening serial port: %s", interface->port_name);
+    log_info("Opening serial port: %s",serial_interface->port_name);
     EnterCriticalSection(&interface->mutex);
 
     if (interface->is_connected) {
@@ -103,7 +103,7 @@ ErrorCode serial_interface_open(SerialInterface* interface) {
     }
 
     // Create the file handle with proper flags for serial communication
-    interface->handle = CreateFile(interface->port_name,
+   serial_interface->handle = CreateFile(interface->port_name,
                                  GENERIC_READ | GENERIC_WRITE,
                                  0,  // No sharing
                                  NULL,
@@ -123,7 +123,7 @@ ErrorCode serial_interface_open(SerialInterface* interface) {
     if (error != ERROR_NONE) {
         log_error("Failed to configure serial port");
         CloseHandle(interface->handle);
-        interface->handle = INVALID_HANDLE_VALUE;
+       serial_interface->handle = INVALID_HANDLE_VALUE;
         LeaveCriticalSection(&interface->mutex);
         return error;
     }
@@ -133,20 +133,20 @@ ErrorCode serial_interface_open(SerialInterface* interface) {
     if (error != ERROR_NONE) {
         log_error("Failed to set port timeouts");
         CloseHandle(interface->handle);
-        interface->handle = INVALID_HANDLE_VALUE;
+       serial_interface->handle = INVALID_HANDLE_VALUE;
         LeaveCriticalSection(&interface->mutex);
         return error;
     }
 
-    interface->is_connected = true;
-    interface->handshake_established = false;
+   serial_interface->is_connected = true;
+   ->handshake_established = false;
     log_info("Serial port opened successfully");
     
     LeaveCriticalSection(&interface->mutex);
     return ERROR_NONE;
 }
 
-ErrorCode serial_interface_close(SerialInterface* interface) {
+ErrorCode serial_interface_close(SerialInterface*serial_interface) {
     ErrorCode result = validate_interface(interface);
     if (result != ERROR_NONE) {
         return result;
@@ -159,18 +159,18 @@ ErrorCode serial_interface_close(SerialInterface* interface) {
     if (interface->is_connected) {
         FlushFileBuffers(interface->handle);
         CloseHandle(interface->handle);
-        interface->handle = INVALID_HANDLE_VALUE;
-        interface->is_connected = false;
-        interface->handshake_established = false;
+       serial_interface->handle = INVALID_HANDLE_VALUE;
+       serial_interface->is_connected = false;
+       serial_interface->handshake_established = false;
     }
 
     LeaveCriticalSection(&interface->mutex);
     return ERROR_NONE;
 }
 
-static ErrorCode validate_interface(SerialInterface* interface) {
+static ErrorCode validate_interface(SerialInterface*serial_interface) {
     if (!interface) {
-        log_error("Null interface pointer");
+        log_error("Nullserial_interface pointer");
         return ERROR_INVALID_PARAM;
     }
 
@@ -194,7 +194,7 @@ static ErrorCode validate_interface(SerialInterface* interface) {
     return ERROR_NONE;
 }
 
-static ErrorCode configure_serial_port(SerialInterface* interface) {
+static ErrorCode configure_serial_port(SerialInterface*serial_interface) {
     DCB dcb = {0};
     dcb.DCBlength = sizeof(DCB);
 
@@ -205,7 +205,7 @@ static ErrorCode configure_serial_port(SerialInterface* interface) {
     }
 
     // Configure serial parameters
-    dcb.BaudRate = interface->baud_rate;
+    dcb.BaudRate =serial_interface->baud_rate;
     dcb.ByteSize = 8;
     dcb.Parity = NOPARITY;
     dcb.StopBits = ONESTOPBIT;
@@ -230,7 +230,7 @@ static ErrorCode configure_serial_port(SerialInterface* interface) {
     return ERROR_NONE;
 }
 
-ErrorCode serial_interface_write_data(SerialInterface* interface, const unsigned char* data, size_t length) {
+ErrorCode serial_interface_write_data(SerialInterface*serial_interface, const unsigned char* data, size_t length) {
     ErrorCode result = validate_interface(interface);
     if (result != ERROR_NONE) {
         return result;
@@ -267,7 +267,7 @@ ErrorCode serial_interface_write_data(SerialInterface* interface, const unsigned
     return ERROR_NONE;
 }
 
-ErrorCode serial_interface_read_data(SerialInterface* interface, unsigned char* buffer, size_t* bytes_read, size_t max_length) {
+ErrorCode serial_interface_read_data(SerialInterface*serial_interface, unsigned char* buffer, size_t* bytes_read, size_t max_length) {
     ErrorCode result = validate_interface(interface);
     if (result != ERROR_NONE) {
         return result;
@@ -298,7 +298,7 @@ ErrorCode serial_interface_read_data(SerialInterface* interface, unsigned char* 
     return ERROR_NONE;
 }
 
-ErrorCode serial_interface_flush(SerialInterface* interface) {
+ErrorCode serial_interface_flush(SerialInterface*serial_interface) {
     ErrorCode result = validate_interface(interface);
     if (result != ERROR_NONE) {
         return result;
@@ -319,7 +319,7 @@ ErrorCode serial_interface_flush(SerialInterface* interface) {
 }
 
 // USB Control Functions
-ErrorCode serial_interface_usb_control_on(SerialInterface* interface) {
+ErrorCode serial_interface_usb_control_on(SerialInterface*serial_interface) {
     ErrorCode result = validate_interface(interface);
     if (result != ERROR_NONE) {
         return result;
@@ -346,7 +346,7 @@ ErrorCode serial_interface_usb_control_on(SerialInterface* interface) {
     return ERROR_NONE;
 }
 
-ErrorCode serial_interface_usb_control_off(SerialInterface* interface) {
+ErrorCode serial_interface_usb_control_off(SerialInterface*serial_interface) {
     ErrorCode result = validate_interface(interface);
     if (result != ERROR_NONE) {
         return result;
@@ -373,7 +373,7 @@ ErrorCode serial_interface_usb_control_off(SerialInterface* interface) {
     return ERROR_NONE;
 }
 
-ErrorCode serial_interface_usb_data_on(SerialInterface* interface) {
+ErrorCode serial_interface_usb_data_on(SerialInterface*serial_interface) {
     ErrorCode result = validate_interface(interface);
     if (result != ERROR_NONE) {
         return result;
@@ -400,7 +400,7 @@ ErrorCode serial_interface_usb_data_on(SerialInterface* interface) {
     return ERROR_NONE;
 }
 
-ErrorCode serial_interface_usb_data_off(SerialInterface* interface) {
+ErrorCode serial_interface_usb_data_off(SerialInterface*serial_interface) {
     ErrorCode result = validate_interface(interface);
     if (result != ERROR_NONE) {
         return result;
@@ -427,7 +427,7 @@ ErrorCode serial_interface_usb_data_off(SerialInterface* interface) {
     return ERROR_NONE;
 }
 
-ErrorCode serial_interface_reset_hardware(SerialInterface* interface, bool is_60hz) {
+ErrorCode serial_interface_reset_hardware(SerialInterface*serial_interface, bool is_60hz) {
     ErrorCode result = validate_interface(interface);
     if (result != ERROR_NONE) {
         return result;
@@ -446,7 +446,7 @@ ErrorCode serial_interface_reset_hardware(SerialInterface* interface, bool is_60
     return serial_interface_perform_handshake(interface, handshake_string);
 }
 
-ErrorCode serial_interface_perform_handshake(SerialInterface* interface, const char* handshake_string) {
+ErrorCode serial_interface_perform_handshake(SerialInterface*serial_interface, const char* handshake_string) {
     ErrorCode result = validate_interface(interface);
     if (result != ERROR_NONE) {
         return result;
@@ -456,7 +456,7 @@ ErrorCode serial_interface_perform_handshake(SerialInterface* interface, const c
     EnterCriticalSection(&interface->mutex);
 
     // Reset handshake status
-    interface->handshake_established = false;
+   serial_interface->handshake_established = false;
 
     // Try handshake multiple times
     for (int attempt = 0; attempt < MAX_HANDSHAKE_ATTEMPTS; attempt++) {
@@ -464,7 +464,7 @@ ErrorCode serial_interface_perform_handshake(SerialInterface* interface, const c
         
         result = perform_handshake_attempt(interface, handshake_string);
         if (result == ERROR_NONE) {
-            interface->handshake_established = true;
+           serial_interface->handshake_established = true;
             log_info("Handshake successful");
             LeaveCriticalSection(&interface->mutex);
             return ERROR_NONE;
@@ -479,7 +479,7 @@ ErrorCode serial_interface_perform_handshake(SerialInterface* interface, const c
     return ERROR_HANDSHAKE_FAILED;
 }
 
-static ErrorCode perform_handshake_attempt(SerialInterface* interface, const char* handshake_string) {
+static ErrorCode perform_handshake_attempt(SerialInterface*serial_interface, const char* handshake_string) {
     // Turn off USB control lines
     serial_interface_usb_control_off(interface);
     serial_interface_usb_data_off(interface);
@@ -519,7 +519,7 @@ static ErrorCode perform_handshake_attempt(SerialInterface* interface, const cha
     return ERROR_NONE;
 }
 
-ErrorCode serial_interface_control_statuses(SerialInterface* interface, char* status_string, bool as_json) {
+ErrorCode serial_interface_control_statuses(SerialInterface*serial_interface, char* status_string, bool as_json) {
     ErrorCode result = validate_interface(interface);
     if (result != ERROR_NONE) {
         return result;
@@ -550,7 +550,7 @@ ErrorCode serial_interface_control_statuses(SerialInterface* interface, char* st
     return ERROR_NONE;
 }
 
-ErrorCode serial_interface_get_current_freq_config(SerialInterface* interface, int* frequency) {
+ErrorCode serial_interface_get_current_freq_config(SerialInterface*serial_interface, int* frequency) {
     if (!interface || !frequency) {
         return ERROR_INVALID_PARAM;
     }
@@ -579,7 +579,7 @@ ErrorCode serial_interface_get_current_freq_config(SerialInterface* interface, i
     return ERROR_NONE;
 }
 
-ErrorCode serial_interface_set_current_freq_config(SerialInterface* interface, int frequency) {
+ErrorCode serial_interface_set_current_freq_config(SerialInterface*serial_interface, int frequency) {
     if (!interface) {
         return ERROR_INVALID_PARAM;
     }
@@ -606,7 +606,7 @@ ErrorCode serial_interface_set_current_freq_config(SerialInterface* interface, i
 }
 
 // Status getter functions
-bool serial_interface_get_rts_status(SerialInterface* interface) {
+bool serial_interface_get_rts_status(SerialInterface*serial_interface) {
     if (!interface || !interface->is_connected) {
         return false;
     }
@@ -618,7 +618,7 @@ bool serial_interface_get_rts_status(SerialInterface* interface) {
     return false;
 }
 
-bool serial_interface_get_dtr_status(SerialInterface* interface) {
+bool serial_interface_get_dtr_status(SerialInterface*serial_interface) {
     if (!interface || !interface->is_connected) {
         return false;
     }
@@ -630,7 +630,7 @@ bool serial_interface_get_dtr_status(SerialInterface* interface) {
     return false;
 }
 
-bool serial_interface_get_cts_status(SerialInterface* interface) {
+bool serial_interface_get_cts_status(SerialInterface*serial_interface) {
     if (!interface || !interface->is_connected) {
         return false;
     }
@@ -642,7 +642,7 @@ bool serial_interface_get_cts_status(SerialInterface* interface) {
     return false;
 }
 
-bool serial_interface_get_dsr_status(SerialInterface* interface) {
+bool serial_interface_get_dsr_status(SerialInterface*serial_interface) {
     if (!interface || !interface->is_connected) {
         return false;
     }
@@ -654,7 +654,7 @@ bool serial_interface_get_dsr_status(SerialInterface* interface) {
     return false;
 }
 
-bool serial_interface_get_cd_status(SerialInterface* interface) {
+bool serial_interface_get_cd_status(SerialInterface*serial_interface) {
     if (!interface || !interface->is_connected) {
         return false;
     }
@@ -666,7 +666,7 @@ bool serial_interface_get_cd_status(SerialInterface* interface) {
     return false;
 }
 
-bool serial_interface_get_ri_status(SerialInterface* interface) {
+bool serial_interface_get_ri_status(SerialInterface*serial_interface) {
     if (!interface || !interface->is_connected) {
         return false;
     }
@@ -678,12 +678,12 @@ bool serial_interface_get_ri_status(SerialInterface* interface) {
     return false;
 }
 
-bool serial_interface_is_handshake_established(SerialInterface* interface) {
-    return interface && interface->handshake_established;
+bool serial_interface_is_handshake_established(SerialInterface*serial_interface) {
+    returnserial_interface &&serial_interface->handshake_established;
 }
 
 // Buffer management
-ErrorCode serial_interface_reset_buffers(SerialInterface* interface) {
+ErrorCode serial_interface_reset_buffers(SerialInterface*serial_interface) {
     ErrorCode result = validate_interface(interface);
     if (result != ERROR_NONE) {
         return result;
@@ -706,7 +706,7 @@ ErrorCode serial_interface_reset_buffers(SerialInterface* interface) {
 }
 
 // Helper function to read until no more data is available
-static ErrorCode read_until_empty(SerialInterface* interface) {
+static ErrorCode read_until_empty(SerialInterface*serial_interface) {
     unsigned char buffer[256];
     size_t bytes_read;
     
@@ -721,7 +721,7 @@ static ErrorCode read_until_empty(SerialInterface* interface) {
 }
 
 // Timeout configuration
-static ErrorCode set_timeouts(SerialInterface* interface) {
+static ErrorCode set_timeouts(SerialInterface*serial_interface) {
     COMMTIMEOUTS timeouts = {0};
     
     // Configure read timeouts
@@ -743,7 +743,7 @@ static ErrorCode set_timeouts(SerialInterface* interface) {
 }
 
 // EMG Version and Equipment byte functions
-ErrorCode serial_interface_get_emg_version(SerialInterface* interface, char* version_string, size_t max_length) {
+ErrorCode serial_interface_get_emg_version(SerialInterface*serial_interface, char* version_string, size_t max_length) {
     ErrorCode result = validate_interface(interface);
     if (result != ERROR_NONE) {
         return result;
@@ -777,7 +777,7 @@ ErrorCode serial_interface_get_emg_version(SerialInterface* interface, char* ver
     return ERROR_NONE;
 }
 
-ErrorCode serial_interface_get_equipment_byte(SerialInterface* interface, unsigned char* equipment_byte) {
+ErrorCode serial_interface_get_equipment_byte(SerialInterface*serial_interface, unsigned char* equipment_byte) {
     ErrorCode result = validate_interface(interface);
     if (result != ERROR_NONE) {
         return result;
@@ -805,11 +805,11 @@ ErrorCode serial_interface_get_equipment_byte(SerialInterface* interface, unsign
     return ERROR_NONE;
 }
 
-ErrorCode serial_interface_check_connection(SerialInterface* interface) {
+ErrorCode serial_interface_check_connection(SerialInterface*serial_interface) {
     return validate_interface(interface);
 }
 
-ErrorCode serial_interface_execute_command(SerialInterface* interface, 
+ErrorCode serial_interface_execute_command(SerialInterface*serial_interface, 
                                          const uint8_t* command,
                                          size_t command_size,
                                          ModeManager* mode_manager) {
@@ -828,7 +828,7 @@ ErrorCode serial_interface_execute_command(SerialInterface* interface,
     EnterCriticalSection(&interface->mutex);
 
     // Look up command in map
-    for (size_t i = 0; i < interface->command_count; i++) {
+    for (size_t i = 0; i <serial_interface->command_count; i++) {
         if (interface->command_maps[i].command == cmd) {
             uint8_t* data = NULL;
             size_t data_size = 0;
@@ -848,7 +848,7 @@ ErrorCode serial_interface_execute_command(SerialInterface* interface,
     return result;
 }
 
-ErrorCode serial_interface_register_command(SerialInterface* interface, 
+ErrorCode serial_interface_register_command(SerialInterface*serial_interface, 
                                           IOCommand command,
                                           ModeExecuteFunc execute_func) {
     if (!interface || !execute_func) {
@@ -859,7 +859,7 @@ ErrorCode serial_interface_register_command(SerialInterface* interface,
     EnterCriticalSection(&interface->mutex);
 
     // Grow array if needed
-    size_t new_count = interface->command_count + 1;
+    size_t new_count =serial_interface->command_count + 1;
     CommandMap* new_maps = realloc(interface->command_maps, new_count * sizeof(CommandMap));
     if (!new_maps) {
         LeaveCriticalSection(&interface->mutex);
@@ -867,10 +867,10 @@ ErrorCode serial_interface_register_command(SerialInterface* interface,
     }
 
     // Add the new command
-    interface->command_maps = new_maps;
-    interface->command_maps[interface->command_count].command = command;
-    interface->command_maps[interface->command_count].execute_func = execute_func;
-    interface->command_count = new_count;
+   serial_interface->command_maps = new_maps;
+   serial_interface->command_maps[interface->command_count].command = command;
+   serial_interface->command_maps[interface->command_count].execute_func = execute_func;
+   serial_interface->command_count = new_count;
 
     LeaveCriticalSection(&interface->mutex);
     return ERROR_NONE;

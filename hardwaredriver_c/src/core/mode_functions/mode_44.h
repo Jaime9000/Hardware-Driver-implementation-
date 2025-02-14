@@ -21,11 +21,11 @@ typedef struct {
 } Mode44RawNoImage;
 
 // Constructor/Destructor for Mode44Raw
-ErrorCode mode_44_raw_create(Mode44Raw** mode, SerialInterface* interface);
+ErrorCode mode_44_raw_create(Mode44Raw** mode, SerialInterface*serial_interface);
 void mode_44_raw_destroy(Mode44Raw* mode);
 
 // Constructor/Destructor for Mode44RawNoImage
-ErrorCode mode_44_raw_no_image_create(Mode44RawNoImage** mode, SerialInterface* interface);
+ErrorCode mode_44_raw_no_image_create(Mode44RawNoImage** mode, SerialInterface*serial_interface);
 void mode_44_raw_no_image_destroy(Mode44RawNoImage* mode);
 
 #endif // MODE_44_H

@@ -28,12 +28,12 @@ typedef struct {
 } Mode57RawNoImage;
 
 // Constructor/Destructor for Mode57Raw
-ErrorCode mode_57_raw_create(Mode57Raw** mode, SerialInterface* interface);
+ErrorCode mode_57_raw_create(Mode57Raw** mode, SerialInterface*serial_interface);
 void mode_57_raw_destroy(Mode57Raw* mode);
 ErrorCode mode_57_raw_execute(Mode57Raw* mode, uint8_t* output, size_t* output_length);
 
 // Constructor/Destructor for Mode57RawNoImage
-ErrorCode mode_57_raw_no_image_create(Mode57RawNoImage** mode, SerialInterface* interface);
+ErrorCode mode_57_raw_no_image_create(Mode57RawNoImage** mode, SerialInterface*serial_interface);
 void mode_57_raw_no_image_destroy(Mode57RawNoImage* mode);
 ErrorCode mode_57_raw_no_image_execute(Mode57RawNoImage* mode, uint8_t* output, size_t* output_length);
 

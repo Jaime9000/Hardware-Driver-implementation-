@@ -8,7 +8,7 @@
 #define FLUSH_TIMEOUT_MS 80
 #define READ_CHUNK_SIZE 320
 
-ErrorCode mode_base_create(ModeBase** mode, SerialInterface* interface, 
+ErrorCode mode_base_create(ModeBase** mode, SerialInterface*serial_interface, 
                          ProcessManager* process_manager, 
                          const ModeBaseVTable* vtable, void* impl) {
     if (!mode || !interface || !process_manager || !vtable || !impl) {
@@ -22,7 +22,7 @@ ErrorCode mode_base_create(ModeBase** mode, SerialInterface* interface,
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    new_mode->interface = interface;
+    new_mode->interface =serial_interface;
     new_mode->process_manager = process_manager;
     new_mode->vtable = vtable;
     new_mode->impl = impl;

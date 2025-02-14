@@ -31,7 +31,7 @@ void logger_cleanup(void);
 void logger_set_level(LogLevel level);
 void logger_set_module(const char* module_name);
 
-// Logging functions (matching Python's logging interface)
+// Logging functions (matching Python's loggingserial_interface)
 void log_critical(const char* format, ...);
 void log_error(const char* format, ...);
 void log_warning(const char* format, ...);

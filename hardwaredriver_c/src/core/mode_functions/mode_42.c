@@ -229,7 +229,7 @@ static const ModeBaseVTable mode_42_lead_status_vtable = {
 };
 
 // Constructor implementations
-static ErrorCode mode_42_create_base(Mode42** mode, SerialInterface* interface, 
+static ErrorCode mode_42_create_base(Mode42** mode, SerialInterface*serial_interface, 
                                    ProcessManager* process_manager, Mode42Type type) {
     if (!mode || !interface || !process_manager) {
         return ERROR_INVALID_PARAM;
@@ -240,7 +240,7 @@ static ErrorCode mode_42_create_base(Mode42** mode, SerialInterface* interface,
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    ErrorCode error = mode_base_create(&new_mode->base, interface, process_manager, 
+    ErrorCode error = mode_base_create(&new_mode->base,serial_interface, process_manager, 
                                      &mode_42_raw_vtable, new_mode);
     if (error != ERROR_NONE) {
         free(new_mode);
@@ -254,15 +254,15 @@ static ErrorCode mode_42_create_base(Mode42** mode, SerialInterface* interface,
     return ERROR_NONE;
 }
 
-ErrorCode mode_42_raw_create(Mode42** mode, SerialInterface* interface, ProcessManager* process_manager) {
-    return mode_42_create_base(mode, interface, process_manager, MODE_42_TYPE_RAW);
+ErrorCode mode_42_raw_create(Mode42** mode, SerialInterface*serial_interface, ProcessManager* process_manager) {
+    return mode_42_create_base(mode,serial_interface, process_manager, MODE_42_TYPE_RAW);
 }
 
-ErrorCode mode_42_raw_emg_create(Mode42** mode, SerialInterface* interface, ProcessManager* process_manager) {
-    return mode_42_create_base(mode, interface, process_manager, MODE_42_TYPE_RAW_EMG);
+ErrorCode mode_42_raw_emg_create(Mode42** mode, SerialInterface*serial_interface, ProcessManager* process_manager) {
+    return mode_42_create_base(mode,serial_interface, process_manager, MODE_42_TYPE_RAW_EMG);
 }
 
-ErrorCode mode_42_equipment_create(EquipmentByte** mode, SerialInterface* interface, ProcessManager* process_manager) {
+ErrorCode mode_42_equipment_create(EquipmentByte** mode, SerialInterface*serial_interface, ProcessManager* process_manager) {
     if (!mode || !interface || !process_manager) {
         log_error("Invalid parameters in mode_42_equipment_create");
         return ERROR_INVALID_PARAM;
@@ -274,7 +274,7 @@ ErrorCode mode_42_equipment_create(EquipmentByte** mode, SerialInterface* interf
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    ErrorCode error = mode_base_create(&new_mode->base, interface, process_manager, 
+    ErrorCode error = mode_base_create(&new_mode->base,serial_interface, process_manager, 
                                      &mode_42_equipment_vtable, new_mode);
     if (error != ERROR_NONE) {
         free(new_mode);
@@ -287,7 +287,7 @@ ErrorCode mode_42_equipment_create(EquipmentByte** mode, SerialInterface* interf
     return ERROR_NONE;
 }
 
-ErrorCode mode_42_lead_status_create(GetEMGLeadStatus** mode, SerialInterface* interface, ProcessManager* process_manager) {
+ErrorCode mode_42_lead_status_create(GetEMGLeadStatus** mode, SerialInterface*serial_interface, ProcessManager* process_manager) {
     if (!mode || !interface || !process_manager) {
         log_error("Invalid parameters in emg_lead_status_create");
         return ERROR_INVALID_PARAM;
@@ -300,14 +300,14 @@ ErrorCode mode_42_lead_status_create(GetEMGLeadStatus** mode, SerialInterface* i
     }
 
     // Initialize Mode43 base first
-    ErrorCode error = mode_43_raw_create((Mode43**)&new_mode->base43, interface, process_manager);
+    ErrorCode error = mode_43_raw_create((Mode43**)&new_mode->base43,serial_interface, process_manager);
     if (error != ERROR_NONE) {
         free(new_mode);
         return error;
     }
 
     // Initialize Mode42 base with lead status vtable
-    error = mode_base_create(&new_mode->mode42_base, interface, process_manager, 
+    error = mode_base_create(&new_mode->mode42_base,serial_interface, process_manager, 
                            &mode_42_lead_status_vtable, new_mode);
     if (error != ERROR_NONE) {
         mode_43_destroy(&new_mode->base43);
@@ -320,12 +320,12 @@ ErrorCode mode_42_lead_status_create(GetEMGLeadStatus** mode, SerialInterface* i
     return ERROR_NONE;
 }
 
-ErrorCode mode_42_raw_notch_create(Mode42** mode, SerialInterface* interface, 
+ErrorCode mode_42_raw_notch_create(Mode42** mode, SerialInterface*serial_interface, 
                                  ProcessManager* process_manager, Mode42Type notch_type) {
     if (notch_type < MODE_42_TYPE_NOTCH_P || notch_type > MODE_42_TYPE_NOTCH_W) {
         return ERROR_INVALID_PARAM;
     }
-    return mode_42_create_base(mode, interface, process_manager, notch_type);
+    return mode_42_create_base(mode,serial_interface, process_manager, notch_type);
 }
 
 // Destructor implementations

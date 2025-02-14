@@ -32,12 +32,12 @@ typedef struct {
 } Mode0Align;
 
 // Constructor/Destructor for Mode0Align
-ErrorCode mode_0_align_create(Mode0Align** mode, SerialInterface* interface, ProcessManager* process_manager);
+ErrorCode mode_0_align_create(Mode0Align** mode, SerialInterface*serial_interface, ProcessManager* process_manager);
 void mode_0_align_destroy(Mode0Align* mode);
 
 
 // Constructor/Destructor
-ErrorCode mode_0_create(Mode0** mode, SerialInterface* interface, ProcessManager* process_manager);
+ErrorCode mode_0_create(Mode0** mode, SerialInterface*serial_interface, ProcessManager* process_manager);
 void mode_0_destroy(Mode0* mode);
 
 /* NO NEED FOR specific __validate_values() function in C implementation:
@@ -124,7 +124,7 @@ typedef struct {
     bool is_first_run;
 } Mode0Raw;
 
-ErrorCode mode_0_raw_create(Mode0Raw** mode, SerialInterface* interface, ProcessManager* process_manager);
+ErrorCode mode_0_raw_create(Mode0Raw** mode, SerialInterface*serial_interface, ProcessManager* process_manager);
 void mode_0_raw_destroy(Mode0Raw* mode);
 ErrorCode mode_0_raw_execute(Mode0Raw* mode, uint8_t* output, size_t* output_length);
 

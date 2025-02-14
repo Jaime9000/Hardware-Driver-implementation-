@@ -21,7 +21,7 @@ struct ModeVTable {
 
 // Mode structure
 struct Mode {
-    SerialInterface* interface;
+    SerialInterface*serial_interface;
     const ModeVTable* vtable;
     void* impl;
     bool handshake_established;
@@ -29,7 +29,7 @@ struct Mode {
 };
 
 // Mode functions
-ErrorCode mode_init(Mode* mode, SerialInterface* interface, const ModeVTable* vtable, void* impl);
+ErrorCode mode_init(Mode* mode, SerialInterface*serial_interface, const ModeVTable* vtable, void* impl);
 void mode_destroy(Mode* mode);
 ErrorCode mode_handshake(Mode* mode);
 ErrorCode mode_execute(Mode* mode, bool disconnected);

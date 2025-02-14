@@ -29,7 +29,7 @@ static const ModeVTable mode_57_no_image_vtable = {
     .execute_not_connected = mode_sweep_execute_not_connected
 };
 
-ErrorCode mode_57_raw_create(Mode57Raw** mode, SerialInterface* interface) {
+ErrorCode mode_57_raw_create(Mode57Raw** mode, SerialInterface*serial_interface) {
     if (!mode || !interface) {
         log_error("Invalid parameters in mode_57_raw_create");
         return ERROR_INVALID_PARAM;
@@ -42,7 +42,7 @@ ErrorCode mode_57_raw_create(Mode57Raw** mode, SerialInterface* interface) {
     }
 
     // Initialize base ModeSweep with show_tilt_window=true
-    ErrorCode error = mode_sweep_init(&new_mode->base, interface, &mode_57_vtable, new_mode, true);
+    ErrorCode error = mode_sweep_init(&new_mode->base,serial_interface, &mode_57_vtable, new_mode, true);
     if (error != ERROR_NONE) {
         free(new_mode);
         return error;
@@ -67,7 +67,7 @@ ErrorCode mode_57_raw_execute(Mode57Raw* mode, uint8_t* output, size_t* output_l
     return mode_sweep_execute(&mode->base, output, output_length);
 }
 
-ErrorCode mode_57_raw_no_image_create(Mode57RawNoImage** mode, SerialInterface* interface) {
+ErrorCode mode_57_raw_no_image_create(Mode57RawNoImage** mode, SerialInterface*serial_interface) {
     if (!mode || !interface) {
         log_error("Invalid parameters in mode_57_raw_no_image_create");
         return ERROR_INVALID_PARAM;
@@ -80,7 +80,7 @@ ErrorCode mode_57_raw_no_image_create(Mode57RawNoImage** mode, SerialInterface* 
     }
 
     // Initialize base ModeSweep with show_tilt_window=false
-    ErrorCode error = mode_sweep_init(&new_mode->base, interface, &mode_57_no_image_vtable, new_mode, false);
+    ErrorCode error = mode_sweep_init(&new_mode->base,serial_interface, &mode_57_no_image_vtable, new_mode, false);
     if (error != ERROR_NONE) {
         free(new_mode);
         return error;

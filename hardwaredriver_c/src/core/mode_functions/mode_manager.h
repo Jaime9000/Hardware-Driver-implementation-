@@ -18,7 +18,7 @@ typedef struct ControlFunctions ControlFunctions;
 
 // Function pointer types
 typedef ErrorCode (*ModeCreateFunc)(ModeBase** mode, 
-                                  SerialInterface* interface,
+                                  SerialInterface*serial_interface,
                                   ProcessManager* process_manager);
 typedef void (*ModeDestroyFunc)(ModeBase* mode);
 
@@ -60,7 +60,7 @@ struct ModeManager {
 
 // Constructor/Destructor
 ErrorCode mode_manager_create(ModeManager** manager, 
-                            SerialInterface* interface,
+                            SerialInterface*serial_interface,
                             ProcessManager* process_manager);
 void mode_manager_destroy(ModeManager* manager);
 

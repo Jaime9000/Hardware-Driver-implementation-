@@ -135,7 +135,7 @@ static const ModeVTable mode_43_vtable = {
     .destroy = NULL
 };
 
-static ErrorCode mode_43_create_base(Mode43** mode, SerialInterface* interface, 
+static ErrorCode mode_43_create_base(Mode43** mode, SerialInterface*serial_interface, 
                                    ProcessManager* process_manager, Mode43Type type) {
     if (!mode || !interface || !process_manager) {
         return ERROR_INVALID_PARAM;
@@ -146,7 +146,7 @@ static ErrorCode mode_43_create_base(Mode43** mode, SerialInterface* interface,
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    ErrorCode error = mode_base_create(&new_mode->base, interface, process_manager, 
+    ErrorCode error = mode_base_create(&new_mode->base,serial_interface, process_manager, 
                                      &mode_43_vtable, new_mode);
     if (error != ERROR_NONE) {
         free(new_mode);
@@ -160,20 +160,20 @@ static ErrorCode mode_43_create_base(Mode43** mode, SerialInterface* interface,
     return ERROR_NONE;
 }
 
-ErrorCode mode_43_raw_create(Mode43** mode, SerialInterface* interface, ProcessManager* process_manager) {
-    return mode_43_create_base(mode, interface, process_manager, MODE_43_TYPE_RAW);
+ErrorCode mode_43_raw_create(Mode43** mode, SerialInterface*serial_interface, ProcessManager* process_manager) {
+    return mode_43_create_base(mode,serial_interface, process_manager, MODE_43_TYPE_RAW);
 }
 
-ErrorCode mode_43_raw_emg_create(Mode43** mode, SerialInterface* interface, ProcessManager* process_manager) {
-    return mode_43_create_base(mode, interface, process_manager, MODE_43_TYPE_RAW_EMG);
+ErrorCode mode_43_raw_emg_create(Mode43** mode, SerialInterface*serial_interface, ProcessManager* process_manager) {
+    return mode_43_create_base(mode,serial_interface, process_manager, MODE_43_TYPE_RAW_EMG);
 }
 
-ErrorCode mode_43_raw_notch_create(Mode43** mode, SerialInterface* interface, 
+ErrorCode mode_43_raw_notch_create(Mode43** mode, SerialInterface*serial_interface, 
                                  ProcessManager* process_manager, Mode43Type notch_type) {
     if (notch_type < MODE_43_TYPE_NOTCH_P || notch_type > MODE_43_TYPE_NOTCH_W) {
         return ERROR_INVALID_PARAM;
     }
-    return mode_43_create_base(mode, interface, process_manager, notch_type);
+    return mode_43_create_base(mode,serial_interface, process_manager, notch_type);
 }
 
 void mode_43_destroy(Mode43* mode) {

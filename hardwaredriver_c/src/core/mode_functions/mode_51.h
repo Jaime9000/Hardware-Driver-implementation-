@@ -20,7 +20,7 @@ typedef struct {
 } Mode51Raw;
 
 // Constructors for different variants
-ErrorCode mode_51_raw_create(Mode51Raw** mode, SerialInterface* interface, ProcessManager* process_manager);
+ErrorCode mode_51_raw_create(Mode51Raw** mode, SerialInterface*serial_interface, ProcessManager* process_manager);
 void mode_51_raw_destroy(Mode51Raw* mode);
 
 #endif // MODE_51_H

@@ -58,7 +58,7 @@ typedef struct {
 } ModeSweep;
 
 // Constructor/Destructor
-ErrorCode mode_sweep_create(ModeSweep** mode, SerialInterface* interface, 
+ErrorCode mode_sweep_create(ModeSweep** mode, SerialInterface*serial_interface, 
                           ProcessManager* process_manager,
                           bool show_tilt_window, bool show_sweep_graph);
 void mode_sweep_destroy(ModeSweep* mode);

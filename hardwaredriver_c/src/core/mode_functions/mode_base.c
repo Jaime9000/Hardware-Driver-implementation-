@@ -1,6 +1,7 @@
 #include "src/core/mode_functions/mode_base.h"
 #include "src/core/mode_functions/timing.h"
 #include "src/core/logger.h"
+#include "src/core/serial_interface.h" 
 #include <stdlib.h>
 #include <string.h>
 

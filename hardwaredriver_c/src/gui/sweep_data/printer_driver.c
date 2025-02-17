@@ -157,7 +157,7 @@ ErrorCode print_document_image(PrintDocument* doc, int x, int y, const char* ima
     ErrorCode result = ERROR_NONE;
 
     if (GdipLoadImageFromFile(wide_path, &image) != Ok) {
-        result = ERROR_FILE_READ;
+        result = ERROR_FILE_OPERATION;
         goto cleanup;
     }
 

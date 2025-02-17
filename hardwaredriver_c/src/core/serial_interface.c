@@ -558,14 +558,14 @@ ErrorCode serial_interface_get_current_freq_config(SerialInterface*serial_interf
     FILE* file = fopen(interface->config->freq_config_path, "r");
     if (!file) {
         log_error("Failed to open frequency config file");
-        return ERROR_FILE_ACCESS;
+        return ERROR_FILE_OPERATION;
     }
 
     char freq_str[8];
     if (fgets(freq_str, sizeof(freq_str), file) == NULL) {
         fclose(file);
         log_error("Failed to read frequency config");
-        return ERROR_FILE_ACCESS;
+        return ERROR_FILE_OPERATION;
     }
 
     fclose(file);
@@ -592,13 +592,13 @@ ErrorCode serial_interface_set_current_freq_config(SerialInterface*serial_interf
     FILE* file = fopen(interface->config->freq_config_path, "w");
     if (!file) {
         log_error("Failed to open frequency config file for writing");
-        return ERROR_FILE_ACCESS;
+        return ERROR_FILE_OPERATION;
     }
 
     if (fprintf(file, "%d", frequency) < 0) {
         fclose(file);
         log_error("Failed to write frequency config");
-        return ERROR_FILE_ACCESS;
+        return ERROR_FILE_OPERATION;
     }
 
     fclose(file);

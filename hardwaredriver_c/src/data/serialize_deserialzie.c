@@ -23,7 +23,7 @@ static ErrorCode write_uint32(FILE* file, uint32_t value) {
 
 static ErrorCode read_uint32(FILE* file, uint32_t* value) {
     if (fread(value, sizeof(uint32_t), 1, file) != 1) {
-        return ERROR_FILE_READ;
+        return ERROR_FILE_OPERATION;
     }
     return ERROR_NONE;
 }
@@ -39,7 +39,7 @@ static ErrorCode write_bool(FILE* file, bool value) {
 static ErrorCode read_bool(FILE* file, bool* value) {
     uint8_t byte;
     if (fread(&byte, sizeof(uint8_t), 1, file) != 1) {
-        return ERROR_FILE_READ;
+        return ERROR_FILE_OPERATION;
     }
     *value = byte != 0;
     return ERROR_NONE;
@@ -61,7 +61,7 @@ static ErrorCode write_string(FILE* file, const char* str, size_t max_len) {
 static ErrorCode read_string(FILE* file, char* str, size_t max_len) {
     size_t len;
     if (fread(&len, sizeof(size_t), 1, file) != 1) {
-        return ERROR_FILE_READ;
+        return ERROR_FILE_OPERATION;
     }
     
     if (len >= max_len) {
@@ -69,7 +69,7 @@ static ErrorCode read_string(FILE* file, char* str, size_t max_len) {
     }
     
     if (fread(str, sizeof(char), len, file) != len) {
-        return ERROR_FILE_READ;
+        return ERROR_FILE_OPERATION;
     }
     str[len] = '\0';
     return ERROR_NONE;
@@ -85,7 +85,7 @@ ErrorCode sweep_data_serialize(const char* filepath, const SweepData* data) {
     FILE* file = fopen(filepath, "wb");
     if (!file) {
         log_error("Failed to open file for writing: %s", filepath);
-        return ERROR_FILE_OPEN;
+        return ERROR_FILE_OPERATION;
     }
 
     ErrorCode error = ERROR_NONE;
@@ -141,7 +141,7 @@ ErrorCode sweep_data_deserialize(const char* filepath, SweepData** data) {
     FILE* file = fopen(filepath, "rb");
     if (!file) {
         log_error("Failed to open file for reading: %s", filepath);
-        return ERROR_FILE_OPEN;
+        return ERROR_FILE_OPERATION;
     }
 
     ErrorCode error = ERROR_NONE;
@@ -186,7 +186,7 @@ ErrorCode sweep_data_deserialize(const char* filepath, SweepData** data) {
 
     if (fread(result->sagittal.timestamps, sizeof(double), sagittal_count, file) != sagittal_count ||
         fread(result->sagittal.values, sizeof(double), sagittal_count, file) != sagittal_count) {
-        error = ERROR_FILE_READ;
+        error = ERROR_FILE_OPERATION;
         goto cleanup;
     }
 
@@ -206,7 +206,7 @@ ErrorCode sweep_data_deserialize(const char* filepath, SweepData** data) {
 
     if (fread(result->frontal.timestamps, sizeof(double), frontal_count, file) != frontal_count ||
         fread(result->frontal.values, sizeof(double), frontal_count, file) != frontal_count) {
-        error = ERROR_FILE_READ;
+        error = ERROR_FILE_OPERATION;
         goto cleanup;
     }
 
@@ -247,7 +247,7 @@ ErrorCode app_state_serialize(const char* filepath, const AppState* state) {
     FILE* file = fopen(filepath, "wb");
     if (!file) {
         log_error("Failed to open file for writing: %s", filepath);
-        return ERROR_FILE_OPEN;
+        return ERROR_FILE_OPERATION;
     }
 
     ErrorCode error = ERROR_NONE;
@@ -290,7 +290,7 @@ ErrorCode app_state_deserialize(const char* filepath, AppState* state) {
     FILE* file = fopen(filepath, "rb");
     if (!file) {
         log_error("Failed to open file for reading: %s", filepath);
-        return ERROR_FILE_OPEN;
+        return ERROR_FILE_OPERATION;
     }
 
     ErrorCode error = ERROR_NONE;
@@ -343,7 +343,7 @@ ErrorCode patient_info_serialize(const char* filepath, const PatientInfo* info) 
     FILE* file = fopen(filepath, "wb");
     if (!file) {
         log_error("Failed to open file for writing: %s", filepath);
-        return ERROR_FILE_OPEN;
+        return ERROR_FILE_OPERATION;
     }
 
     ErrorCode error = ERROR_NONE;
@@ -377,7 +377,7 @@ ErrorCode patient_info_deserialize(const char* filepath, PatientInfo* info) {
     FILE* file = fopen(filepath, "rb");
     if (!file) {
         log_error("Failed to open file for reading: %s", filepath);
-        return ERROR_FILE_OPEN;
+        return ERROR_FILE_OPERATION;
     }
 
     ErrorCode error = ERROR_NONE;

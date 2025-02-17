@@ -60,7 +60,7 @@ ErrorCode logger_init(const char* log_dir) {
     if (!g_logger->log_file) {
         free(g_logger);
         g_logger = NULL;
-        return ERROR_FILE_ACCESS;
+        return ERROR_FILE_OPERATION;
     }
     
     // Initialize other fields

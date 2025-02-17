@@ -102,7 +102,7 @@ ErrorCode patient_name_watcher_create(PatientNameWatcher** watcher, void (*callb
     
     if ((*watcher)->dir_handle == INVALID_HANDLE_VALUE) {
         free(*watcher);
-        return ERROR_FILE_OPEN;
+        return ERROR_FILE_OPERATION;
     }
     
     (*watcher)->callback = callback;
@@ -457,7 +457,7 @@ ErrorCode mode_sweep_save_mode_type(bool show_sweep_graph) {
     FILE* file = fopen(K7_MODE_TYPE_PATH, "w");
     if (!file) {
         free(json_str);
-        return ERROR_FILE_OPEN;
+        return ERROR_FILE_OPERATION;
     }
 
     fprintf(file, "%s", json_str);

@@ -66,7 +66,7 @@ static ErrorCode load_or_create_json(cJSON** json) {
             log_error("Failed to create JSON file");
             free(json_str);
             cJSON_Delete(*json);
-            return ERROR_FILE_OPEN;
+            return ERROR_FILE_OPERATION;
         }
 
         fputs(json_str, fp);
@@ -84,7 +84,7 @@ static ErrorCode load_or_create_json(cJSON** json) {
     *json = cJSON_Parse(buffer);
     if (!*json) {
         log_error("Failed to parse JSON file");
-        return ERROR_FILE_READ;
+        return ERROR_FILE_OPERATION;
     }
 
     return ERROR_NONE;
@@ -123,7 +123,7 @@ ErrorCode play_video_file(uint32_t video_id) {
     if ((intptr_t)result <= 32) {  // Windows API defines success as > 32
         log_error("Failed to open video file: %s", video_path);
         cJSON_Delete(json);
-        return ERROR_FILE_OPEN;
+        return ERROR_FILE_OPERATION;
     }
 
     cJSON_Delete(json);

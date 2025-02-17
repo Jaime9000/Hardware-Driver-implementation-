@@ -180,7 +180,7 @@ ErrorCode namespace_options_get_patient_name(NamespaceOptions* options, char* na
     if (error != ERROR_NONE) return error;
 
     FILE* file = fopen(filepath, "rb");
-    if (!file) return ERROR_FILE_OPEN;
+    if (!file) return ERROR_FILE_OPERATION;
 
     size_t read_size = fread(name, 1, max_length - 1, file);
     name[read_size] = '\0';
@@ -255,7 +255,7 @@ ErrorCode namespace_options_save_to_directory(const NamespaceOptions* options) {
     if (error != ERROR_NONE) return error;
 
     FILE* file = fopen(filepath, "wb");
-    if (!file) return ERROR_FILE_OPEN;
+    if (!file) return ERROR_FILE_OPERATION;
 
     AppState state = {
         .exit_thread = options->exit_thread,
@@ -279,7 +279,7 @@ ErrorCode namespace_options_load_from_directory(NamespaceOptions* options) {
     AppState state;
     error = app_state_deserialize(filepath, &state);
     if (error != ERROR_NONE) {
-        if (error == ERROR_FILE_OPEN) {
+        if (error == ERROR_FILE_OPERATION) {
             // File doesn't exist, create with default values
             return namespace_options_save_to_directory(options);
         }
@@ -311,7 +311,7 @@ ErrorCode namespace_options_set_root_data_dir(const char* drive_name) {
     snprintf(root_dir, MAX_PATH_LENGTH, "%s\\data", drive_name);
 
     FILE* file = fopen(filepath, "wb");
-    if (!file) return ERROR_FILE_OPEN;
+    if (!file) return ERROR_FILE_OPERATION;
 
     size_t len = strlen(root_dir);
     if (fwrite(root_dir, 1, len, file) != len) {
@@ -367,7 +367,7 @@ ErrorCode namespace_options_setup_watch(NamespaceOptions* options,
         NULL);
         
     if (options->dir_handle == INVALID_HANDLE_VALUE) {
-        return ERROR_FILE_OPEN;
+        return ERROR_FILE_OPERATION;
     }
     
     options->overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -397,7 +397,7 @@ ErrorCode namespace_options_setup_user_data_watch(NamespaceOptions* options,
         NULL);
         
     if (patient_dir == INVALID_HANDLE_VALUE) {
-        return ERROR_FILE_OPEN;
+        return ERROR_FILE_OPERATION;
     }
 
     // Start a new thread for watching patient directory

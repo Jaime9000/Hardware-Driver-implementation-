@@ -120,7 +120,7 @@ static ErrorCode init_directory_watching(DataTable* table) {
         FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
         NULL);
         
-    if (table->dir_handle == INVALID_HANDLE_VALUE) return ERROR_FILE_OPEN;
+    if (table->dir_handle == INVALID_HANDLE_VALUE) return ERROR_FILE_OPERATION;
     
     table->overlapped.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     table->thread_handle = CreateThread(NULL, 0, watch_directory, table, 0, NULL);
@@ -212,7 +212,7 @@ static int compare_rows_by_datetime(const void* a, const void* b) {
 
 static ErrorCode load_table_data(DataTable* table, const char* scan_filter_type) {
     DIR* dir = opendir(table->patient_path_data);
-    if (!dir) return ERROR_FILE_OPEN;
+    if (!dir) return ERROR_FILE_OPERATION;
 
     // Clear existing rows
     for (size_t i = 0; i < table->row_count; i++) {

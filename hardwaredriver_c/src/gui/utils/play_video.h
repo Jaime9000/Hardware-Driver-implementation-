@@ -23,9 +23,9 @@
  * @return ErrorCode ERROR_NONE on success, otherwise:
  *         ERROR_FILE_NOT_FOUND if JSON or video file missing
  *         ERROR_INVALID_VIDEO if video ID not found in mapping
- *         ERROR_FILE_OPEN if file operations fail
+ *         ERROR_FILE_OPERATION if file operations fail
  *         ERROR_MEMORY_ALLOCATION if memory allocation fails
- *         ERROR_FILE_READ if JSON parsing fails
+ *         ERROR_FILE_OPERATION if JSON parsing fails
  */
 ErrorCode play_video_file(uint32_t video_id);
 

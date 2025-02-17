@@ -50,6 +50,18 @@ const char* get_error_string(ErrorCode code) {
             return "No data available in buffer";
         case ERROR_SERIAL_EXCEPTION:
             return "Serial communication exception";
+        case ERROR_THREAD_CREATE:
+            return "Failed to create thread";
+        case ERROR_LIMIT_EXCEEDED:
+            return "Limit exceeded";
+        case ERROR_PROCESS_CREATE:
+            return "Failed to create process";
+        case ERROR_PROCESS_TERMINATE:
+            return "Failed to terminate process";
+        case ERROR_FILE_OPERATION:
+            return "Failed to perform file operation";
+        case ERROR_INVALID_VIDEO:
+            return "Invalid video";
         default: 
             return "Unknown error";
     }

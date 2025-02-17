@@ -10,6 +10,9 @@
 typedef struct Mode Mode;
 typedef struct ModeVTable ModeVTable;
 
+// Add near the top of the file, after the forward declarations
+typedef ErrorCode (*ModeExecuteFunc)(Mode* mode);
+
 // Virtual table for mode operations
 struct ModeVTable {
     int (*get_mode_number)(const Mode* mode);

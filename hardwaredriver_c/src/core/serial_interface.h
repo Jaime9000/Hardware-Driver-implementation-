@@ -15,6 +15,10 @@
 #include "src/core/mode_functions/mode_manager.h"  // needed for mode_manager_execute_command
 #include "src/core/mode_functions/mode.h"
 
+// Forward declarations
+typedef enum IOCommand IOCommand;
+typedef struct Mode Mode;  // Need this for ModeExecuteFunc
+typedef ErrorCode (*ModeExecuteFunc)(Mode* mode);  // Matches mode.h definition
 
 // Serial port configuration constants
 #define SLOW_BAUD_RATE 115200

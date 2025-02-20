@@ -65,7 +65,7 @@ SerialInterface* serial_interface_create(Config* config) {
     }
 
     log_debug("Serialserial_interface created successfully for port %s",serial_interface->port_name);
-    returnserial_interface;
+    return serial_interface;
 }
 
 void serial_interface_destroy(SerialInterface*serial_interface) {
@@ -139,7 +139,7 @@ ErrorCode serial_interface_open(SerialInterface*serial_interface) {
     }
 
    serial_interface->is_connected = true;
-   ->handshake_established = false;
+   serial_interface->handshake_established = false;
     log_info("Serial port opened successfully");
     
     LeaveCriticalSection(&serial_interface->mutex);

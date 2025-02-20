@@ -44,6 +44,9 @@ typedef struct SerialInterface {
     DWORD baud_rate;               // Current baud rate
     bool handshake_established;    // Handshake status
     Logger* logger;                // System logger
+    
+    IOCommand* command_maps;       // Array of commands
+    size_t command_count;          // Number of registered commands
 } SerialInterface;
 
 // Constructor/Destructor

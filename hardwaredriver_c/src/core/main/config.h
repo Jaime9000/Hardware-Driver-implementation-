@@ -17,6 +17,7 @@
 #define DEFAULT_FREQ_CONFIG_PATH "C:\\K7\\freq_config"
 #define USB_VENDOR_ID_2303 "2303"
 #define USB_VENDOR_ID_23A3 "23A3"
+#define MAX_BUFFER_SIZE 32000  // Maximum sample buffer size
 
 // Error codes for config operations
 typedef enum {

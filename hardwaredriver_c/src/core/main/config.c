@@ -8,6 +8,7 @@
 #include <setupapi.h>
 #include <initguid.h>
 #include <devguid.h>
+#include <errno.h>
 
 // Static helper function declarations
 static bool is_target_usb_device(const char* hardware_id);
@@ -96,25 +97,34 @@ ConfigError config_load_from_file(Config* config, const char* config_path) {
 
     // Extract values
     cJSON* com_port = cJSON_GetObjectItem(root, "com_port");
+    cJSON* auto_detect = cJSON_GetObjectItem(root, "port_auto_detect");
     cJSON* baud_rate = cJSON_GetObjectItem(root, "baud_rate");
     cJSON* log_level = cJSON_GetObjectItem(root, "log_level");
+    cJSON* debug_enabled = cJSON_GetObjectItem(root, "debug_enabled");
+    cJSON* info_enabled = cJSON_GetObjectItem(root, "info_enabled");
+    cJSON* sample_count = cJSON_GetObjectItem(root, "sample_count");
 
     if (!com_port || !cJSON_IsString(com_port) ||
+        !auto_detect || !cJSON_IsBool(auto_detect) ||
         !baud_rate || !cJSON_IsNumber(baud_rate) ||
-        !log_level || !cJSON_IsString(log_level)) {
+        !log_level || !cJSON_IsNumber(log_level) ||
+        !debug_enabled || !cJSON_IsBool(debug_enabled) ||
+        !info_enabled || !cJSON_IsBool(info_enabled) ||
+        !sample_count || !cJSON_IsNumber(sample_count)) {
         cJSON_Delete(root);
         return CONFIG_ERROR_JSON_PARSE;
     }
 
     strncpy(config->com_port, com_port->valuestring, sizeof(config->com_port) - 1);
     config->com_port[sizeof(config->com_port) - 1] = '\0';
-    config->baud_rate = (int)baud_rate->valuedouble;
-    strncpy(config->log_level, log_level->valuestring, sizeof(config->log_level) - 1);
-    config->log_level[sizeof(config->log_level) - 1] = '\0';
+    config->port_auto_detect = cJSON_IsTrue(auto_detect);
+    config->baud_rate = (DWORD)baud_rate->valuedouble;
+    config->log_level = (LogLevel)log_level->valueint;
+    config->debug_enabled = cJSON_IsTrue(debug_enabled);
+    config->info_enabled = cJSON_IsTrue(info_enabled);
+    config->sample_count = (int)sample_count->valuedouble;
 
     cJSON_Delete(root);
-
-    // Validate loaded configuration
     return config_validate(config);
 }
 
@@ -131,7 +141,7 @@ ConfigError config_save_to_file(Config* config, const char* config_path) {
 
     cJSON_AddStringToObject(root, "com_port", config->com_port);
     cJSON_AddNumberToObject(root, "baud_rate", config->baud_rate);
-    cJSON_AddStringToObject(root, "log_level", config->log_level);
+    cJSON_AddNumberToObject(root, "log_level", config->log_level);
 
     char* json_string = cJSON_Print(root);
     if (!json_string) {

@@ -38,10 +38,13 @@ typedef struct {
     char freq_config_path[MAX_PATH_LENGTH];
     
     // Serial port configuration
-    char port_name[MAX_PORT_NAME_LENGTH];
+    //char port_name[MAX_PORT_NAME_LENGTH];
+    char com_port[MAX_PORT_NAME_LENGTH];
     bool port_auto_detect;
+    DWORD baud_rate;
     
-    // Operation mode
+    // Logging configuration
+    LogLevel log_level;
     bool is_service;
     bool debug_enabled;
     bool info_enabled;

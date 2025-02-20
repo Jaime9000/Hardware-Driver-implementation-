@@ -35,7 +35,7 @@ typedef ErrorCode (*ModeExecuteFunc)(Mode* mode);  // Matches mode.h definition
 #define MAX_VERSION_STRING_LENGTH 32
 
 // Serialserial_interface structure
-typedef struct {
+typedef struct SerialInterface {
     HANDLE handle;                  // Windows handle for the serial port
     CRITICAL_SECTION mutex;         // Thread synchronization
     Config* config;                 // Pointer to configuration

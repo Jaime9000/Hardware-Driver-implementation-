@@ -10,7 +10,8 @@
 #include "src/gui/utils/process_manager.h"
 #include "src/core/mode_functions/timing.h"
 
-//typedef struct SerialInterface SerialInterface;
+typedef struct SerialInterface SerialInterface;
+//typedef struct ProcessManager ProcessManager;
 typedef struct ModeBase ModeBase;
 
 typedef struct {

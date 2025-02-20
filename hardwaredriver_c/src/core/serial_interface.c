@@ -679,7 +679,7 @@ bool serial_interface_get_ri_status(SerialInterface*serial_interface) {
 }
 
 bool serial_interface_is_handshake_established(SerialInterface*serial_interface) {
-    returnserial_interface &&serial_interface->handshake_established;
+    return serial_interface && serial_interface->handshake_established;
 }
 
 // Buffer management
@@ -860,13 +860,14 @@ ErrorCode serial_interface_register_command(SerialInterface*serial_interface,
 
     // Grow array if needed
     size_t new_count =serial_interface->command_count + 1;
-    CommandMap* new_maps = realloc(serial_interface->command_maps, new_count * sizeof(CommandMap));
+    IOCommand* new_maps = realloc(serial_interface->command_maps, new_count * sizeof(new_maps));
     if (!new_maps) {
         LeaveCriticalSection(&serial_interface->mutex);
         return ERROR_OUT_OF_MEMORY;
     }
 
     // Add the new command
+    //WE MAY NEED TO REEVALUATE command_maps BECUASE I DONT SEE WHERE COMMAND_MAPS IS SET AS AN ARRAY RATHER THAN A SINGLE IOCOMMAND
    serial_interface->command_maps = new_maps;
    serial_interface->command_maps[serial_interface->command_count].command = command;
    serial_interface->command_maps[serial_interface->command_count].execute_func = execute_func;

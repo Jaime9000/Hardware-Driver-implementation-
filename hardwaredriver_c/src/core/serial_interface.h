@@ -1,6 +1,15 @@
 #ifndef MYOTRONICS_SERIAL_INTERFACE_H
 #define MYOTRONICS_SERIAL_INTERFACE_H
 
+#define MS_RTS_ON       0x00000002
+#define MS_RTS_OFF      0x00000000
+#define MS_DTR_ON       0x00000001
+#define MS_DTR_OFF      0x00000000
+#define MS_CTS_ON       0x00000010
+#define MS_DSR_ON       0x00000020
+#define MS_RING_ON      0x00000040
+#define MS_RLSD_ON      0x00000080
+
 // System headers
 #include <stdio.h>
 #include <stdlib.h>

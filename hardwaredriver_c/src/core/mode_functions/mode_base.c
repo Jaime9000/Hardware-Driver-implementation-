@@ -12,7 +12,7 @@
 ErrorCode mode_base_create(ModeBase** mode, SerialInterface*serial_interface, 
                          ProcessManager* process_manager, 
                          const ModeBaseVTable* vtable, void* impl) {
-    if (!mode || !interface || !process_manager || !vtable || !impl) {
+    if (!mode || !s_interface || !process_manager || !vtable || !impl) {
         log_error("Invalid parameters in mode_base_create");
         return ERROR_INVALID_PARAM;
     }
@@ -23,7 +23,7 @@ ErrorCode mode_base_create(ModeBase** mode, SerialInterface*serial_interface,
         return ERROR_MEMORY_ALLOCATION;
     }
 
-    new_mode->interface =serial_interface;
+    new_mode->s_interface =serial_interface;
     new_mode->process_manager = process_manager;
     new_mode->vtable = vtable;
     new_mode->impl = impl;
@@ -50,12 +50,12 @@ void mode_base_destroy(ModeBase* mode) {
 }
 
 ErrorCode mode_base_handshake(ModeBase* mode) {
-    if (!mode || !mode->interface) {
+    if (!mode || !mode->s_interface) {
         return ERROR_INVALID_PARAM;
     }
 
     // Reset hardware at 60Hz
-    ErrorCode result = serial_interface_reset_hardware(mode->interface, true);
+    ErrorCode result = serial_interface_reset_hardware(mode->s_interface, true);
     if (result != ERROR_NONE) {
         log_error("Failed to reset hardware during handshake");
         return result;
@@ -69,7 +69,7 @@ ErrorCode mode_base_handshake(ModeBase* mode) {
     }
 
     uint8_t mode_byte = (uint8_t)mode_num;
-    result = serial_interface_write_data(mode->interface, &mode_byte, 1);
+    result = serial_interface_write_data(mode->s_interface, &mode_byte, 1);
     if (result != ERROR_NONE) {
         log_error("Failed to write mode byte");
         return result;
@@ -79,7 +79,7 @@ ErrorCode mode_base_handshake(ModeBase* mode) {
     size_t config_len;
     const uint8_t* config = mode_base_get_emg_config(mode, &config_len);
     if (config && config_len > 0) {
-        result = serial_interface_write_data(mode->interface, config, config_len);
+        result = serial_interface_write_data(mode->s_interface, config, config_len);
         if (result != ERROR_NONE) {
             log_error("Failed to write EMG config");
             return result;
@@ -89,7 +89,7 @@ ErrorCode mode_base_handshake(ModeBase* mode) {
     // Read device byte
     uint8_t device_byte;
     size_t bytes_read;
-    result = serial_interface_read_data(mode->interface, &device_byte, &bytes_read, 1);
+    result = serial_interface_read_data(mode->s_interface, &device_byte, &bytes_read, 1);
     
     if (result != ERROR_NONE || bytes_read != 1) {
         log_error("Failed to read device byte");
@@ -132,7 +132,7 @@ ErrorCode mode_base_execute(ModeBase* mode, uint8_t* output, size_t* output_leng
 }
 
 ErrorCode mode_base_flush_data(ModeBase* mode) {
-    if (!mode || !mode->interface) {
+    if (!mode || !mode->s_interface) {
         return ERROR_INVALID_PARAM;
     }
 
@@ -142,7 +142,7 @@ ErrorCode mode_base_flush_data(ModeBase* mode) {
 
     while (total_bytes < MAX_FLUSH_BYTES) {
         size_t bytes_read;
-        ErrorCode result = serial_interface_read_data(mode->interface, buffer, &bytes_read, READ_CHUNK_SIZE);
+        ErrorCode result = serial_interface_read_data(mode->s_interface, buffer, &bytes_read, READ_CHUNK_SIZE);
         
         if (result != ERROR_NONE && result != ERROR_TIME_OUT) {
             return result;

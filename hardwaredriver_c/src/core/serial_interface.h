@@ -55,8 +55,7 @@ typedef struct SerialInterface {
     bool handshake_established;    // Handshake status
     Logger* logger;                // System logger
     
-    IOCommand* command_maps;       // Array of commands
-    size_t command_count;          // Number of registered commands
+    //ModeManager* mode_manager;     // Reference to mode manager for command execution
 } SerialInterface;
 
 // Constructor/Destructor

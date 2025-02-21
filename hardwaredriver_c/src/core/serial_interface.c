@@ -33,8 +33,8 @@ SerialInterface* serial_interface_create(Config* config) {
    serial_interface->logger = config->logger;
 
     // Initialize command maps
-   serial_interface->command_maps = NULL;
-   serial_interface->command_count = 0;
+   //serial_interface->command_maps = NULL;
+   //serial_interface->command_count = 0;
 
     // Get port name from config
     const char* port_name = config_get_port_name(config);
@@ -828,8 +828,12 @@ ErrorCode serial_interface_execute_command(SerialInterface*serial_interface,
     EnterCriticalSection(&serial_interface->mutex);
 
     // Look up command in map
-    for (size_t i = 0; i <serial_interface->command_count; i++) {
-        if (serial_interface->command_maps[i].command == cmd) {
+    /*for (size_t i = 0; i <mode_manager->mode_count; i++) {
+        if (serial_interface->mode_manager->mode_entries[i].command == cmd) {
+        WE MAY NEED TO CHECK ORDER OF INSTANTIATION AND THEN MAKE SURE WE PASS THE CORRECT INSTANCE OF MODE MANAGER 
+        IN SERIAL INTERFACE, but SINCE WE ARE ALREDY VALIDATING COMMANDS IN MODE MANAGER, WE SHOULD BE OK instead of double checking.
+        */
+        if (cmd != NULL)
             uint8_t* data = NULL;
             size_t data_size = 0;
             ErrorCode result = mode_manager_execute_command(mode_manager, 
@@ -841,7 +845,7 @@ ErrorCode serial_interface_execute_command(SerialInterface*serial_interface,
             return result;
         }
     }
-
+    
     // If no handler found, just write the command
     ErrorCode result = serial_interface_write_data(serial_interface, command, command_size);
     LeaveCriticalSection(&serial_interface->mutex);
@@ -868,10 +872,10 @@ ErrorCode serial_interface_register_command(SerialInterface*serial_interface,
 
     // Add the new command
     //WE MAY NEED TO REEVALUATE command_maps BECUASE I DONT SEE WHERE COMMAND_MAPS IS SET AS AN ARRAY RATHER THAN A SINGLE IOCOMMAND
-   serial_interface->command_maps = new_maps;
+   /*serial_interface->command_maps = new_maps;
    serial_interface->command_maps[serial_interface->command_count].command = command;
    serial_interface->command_maps[serial_interface->command_count].execute_func = execute_func;
-   serial_interface->command_count = new_count;
+   serial_interface->command_count = new_count;*/
 
     LeaveCriticalSection(&serial_interface->mutex);
     return ERROR_NONE;

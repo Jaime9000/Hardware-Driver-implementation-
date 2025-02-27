@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <bcrypt.h>
+#include <windows.h>
+#include <ntstatus.h>  // For STATUS_SUCCESS
 
 #pragma comment(lib, "bcrypt.lib")
 

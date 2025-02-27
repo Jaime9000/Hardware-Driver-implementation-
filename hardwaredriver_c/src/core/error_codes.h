@@ -30,7 +30,8 @@ typedef enum {
     ERROR_PROCESS_CREATE = -24,
     ERROR_PROCESS_TERMINATE = -25,
     ERROR_FILE_OPERATION = -26,
-    ERROR_INVALID_VIDEO = -27
+    ERROR_INVALID_VIDEO = -27,
+    ERROR_CRYPTO = -28
 } ErrorCode;
 
 // Error handling functions

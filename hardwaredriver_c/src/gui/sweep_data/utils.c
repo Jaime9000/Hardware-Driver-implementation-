@@ -61,7 +61,7 @@ ErrorCode encode_name(const char* patient_name, char* output, size_t output_size
     hash_object = (PBYTE)HeapAlloc(GetProcessHeap(), 0, hash_length);
     if (!hash_object) {
         log_error("Failed to allocate hash object");
-        result = ERROR_MEMORY;
+        result = ERROR_MEMORY_ALLOCATION;
         goto cleanup;
     }
 
@@ -69,7 +69,7 @@ ErrorCode encode_name(const char* patient_name, char* output, size_t output_size
     hash_data = (PBYTE)HeapAlloc(GetProcessHeap(), 0, 16);
     if (!hash_data) {
         log_error("Failed to allocate hash data buffer");
-        result = ERROR_MEMORY;
+        result = ERROR_MEMORY_ALLOCATION;
         goto cleanup;
     }
 

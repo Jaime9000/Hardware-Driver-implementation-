@@ -62,6 +62,8 @@ const char* get_error_string(ErrorCode code) {
             return "Failed to perform file operation";
         case ERROR_INVALID_VIDEO:
             return "Invalid video";
+        case ERROR_CRYPTO:
+            return "Crypto error";
         default: 
             return "Unknown error";
     }

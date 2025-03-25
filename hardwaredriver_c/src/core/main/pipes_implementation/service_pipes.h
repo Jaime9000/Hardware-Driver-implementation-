@@ -1,6 +1,7 @@
 #ifndef MYOTRONICS_SERVICE_H
 #define MYOTRONICS_SERVICE_H
 
+#define THIS_IS_MY_INTELLECTUAL_PROPERTY
 #include <stdio.h>
 #include <windows.h>
 #include <stdint.h>
